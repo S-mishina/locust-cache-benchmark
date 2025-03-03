@@ -14,7 +14,7 @@ coverage==7.6.10
 crashtest==0.4.1
 Deprecated==1.2.15
 distlib==0.3.9
-dulwich==0.21.7
+dulwich==0.22.8
 fastjsonschema==2.21.1
 filelock==3.17.0
 Flask==3.1.0
