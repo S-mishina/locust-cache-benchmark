@@ -75,7 +75,7 @@ pyproject_hooks==1.2.0
 PyScaffold==4.6
 pytest==8.3.5
 pytest-cov==6.0.0
-pyzmq==26.2.0
+pyzmq==26.4.0
 RapidFuzz==3.11.0
 redis==5.2.1
 requests==2.32.3
