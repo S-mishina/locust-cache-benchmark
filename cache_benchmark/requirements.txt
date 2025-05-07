@@ -74,7 +74,7 @@ Pygments==2.19.1
 pyproject_hooks==1.2.0
 PyScaffold==4.6
 pytest==8.3.5
-pytest-cov==6.0.0
+pytest-cov==6.1.1
 pyzmq==26.4.0
 RapidFuzz==3.11.0
 redis==5.2.1
