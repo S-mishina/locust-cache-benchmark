@@ -57,7 +57,7 @@ opentelemetry-instrumentation-redis==0.50b0
 opentelemetry-proto==1.29.0
 opentelemetry-sdk==1.29.0
 opentelemetry-semantic-conventions==0.50b0
-packaging==24.2
+packaging==25.0
 pathspec==0.12.1
 pexpect==4.9.0
 pkginfo==1.12.1.2
