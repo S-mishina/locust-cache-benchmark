@@ -90,7 +90,7 @@ tomli_w==1.2.0
 tomlkit==0.13.2
 trove-classifiers==2025.1.15.22
 typing_extensions==4.12.2
-urllib3==2.3.0
+urllib3==2.4.0
 userpath==1.9.2
 uv==0.7.2
 valkey==6.0.2
