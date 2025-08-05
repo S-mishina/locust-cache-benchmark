@@ -92,7 +92,7 @@ trove-classifiers==2025.5.9.12
 typing_extensions==4.13.2
 urllib3==2.4.0
 userpath==1.9.2
-uv==0.7.3
+uv==0.8.5
 valkey==6.1.0
 virtualenv==20.31.2
 Werkzeug==3.1.3
