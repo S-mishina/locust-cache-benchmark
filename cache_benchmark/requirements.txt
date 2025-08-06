@@ -18,7 +18,7 @@ dulwich==0.22.8
 fastjsonschema==2.21.1
 filelock==3.18.0
 Flask==3.1.1
-Flask-Cors==5.0.1
+Flask-Cors==6.0.1
 Flask-Login==0.6.3
 gevent==24.11.1
 geventhttpclient==2.3.3
