@@ -20,7 +20,7 @@ class CacheConnect:
         ssl = os.environ.get("SSL")
         query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
         
-        # 接続プールサイズを安全な範囲に制限
+        # Limit connection pool size to a safe range
         safe_pool_size = min(int(connections_pool), 50)
         
         logging.info(f"Creating Redis connection with pool size: {safe_pool_size}")
