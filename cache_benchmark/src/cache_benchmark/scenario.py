@@ -72,7 +72,7 @@ class RedisUser(User):
             logging.error(f"User {id(self)} connection failed")
     
     def on_stop(self):
-        """ユーザー終了時に接続をクリーンアップ"""
+        """Clean up connections when user exits"""
         if hasattr(self, 'cache_conn') and self.cache_conn:
             try:
                 self.cache_conn.close()
