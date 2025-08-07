@@ -56,7 +56,7 @@ class RedisUser(User):
     host = os.environ.get("REDIS_HOST")
     
     def on_start(self):
-        """ユーザー開始時に専用接続を作成"""
+        """Dedicated connection created at user startup"""
         from cache_benchmark.cash_connect import CacheConnect
         self.cache = CacheConnect()
         cache_type = os.environ.get("CACHE_TYPE", "redis_cluster")
