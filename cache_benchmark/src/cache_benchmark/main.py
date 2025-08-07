@@ -11,26 +11,16 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
-@locust.events.init.add_listener
-def on_locust_init(environment, **kwargs):
-    cache = CacheConnect()
-    if kwargs.get('cache_type'):
-        if kwargs.get('cache_type') == "redis_cluster":
-            logger.info("Locust environment redis_conn initialized.")
-            environment.cache_conn = cache.redis_connect()
-        elif kwargs.get('cache_type') == "valkey_cluster":
-            logger.info("Locust environment valkey_conn initialized.")
-            environment.cache_conn = cache.valkey_connect()
-
-
 def redis_load_test(args):
     set_env_vars(args)
     set_env_cache_retry(args)
+    os.environ["CACHE_TYPE"] = "redis_cluster"
     locust_runner_cash_benchmark(args,RedisUser)
 
 def valkey_load_test(args):
     set_env_vars(args)
     set_env_cache_retry(args)
+    os.environ["CACHE_TYPE"] = "valkey_cluster"
     locust_runner_cash_benchmark(args,RedisUser)
 
 def cluster_redis_load_test(args):
@@ -41,10 +31,12 @@ def cluster_redis_load_test(args):
     if args.cluster_mode == "master":
         set_env_vars(args)
         set_env_cache_retry(args)
+        os.environ["CACHE_TYPE"] = "redis_cluster"
         locust_master_runner_benchmark(args,RedisUser)
     elif args.cluster_mode == "worker":
         set_env_vars(args)
         set_env_cache_retry(args)
+        os.environ["CACHE_TYPE"] = "redis_cluster"
         locust_worker_runner_benchmark(args,RedisUser)
     else:
         logger.error("Invalid cluster mode provided.")

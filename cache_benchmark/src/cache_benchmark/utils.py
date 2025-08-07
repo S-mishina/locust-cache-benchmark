@@ -98,7 +98,6 @@ def locust_runner_cash_benchmark(args,redisuser):
     runner = LocalRunner(env)
     redisuser.host = f"http://{args.fqdn}:{args.port}"
     gevent.spawn(stats_printer(env.stats))
-    locust.events.init.fire(environment=env,cache_type="valkey_cluster")
     runner.start(user_count=args.connections, spawn_rate=args.spawn_rate)
     stats_printer(env.stats)
     logging.info("Starting Locust load test...")
@@ -114,7 +113,6 @@ def locust_master_runner_benchmark(args, redisuser):
     env = Environment(user_classes=[redisuser])
     env.events.request.add_listener(lambda **kwargs: stats_printer(env.stats))
     runner = MasterRunner(env, master_bind_host=args.master_bind_host, master_bind_port=args.master_bind_port)
-    locust.events.init.fire(environment=env, cache_type="valkey_cluster")
     logging.info("Master is waiting for workers to connect...")
     while len(runner.clients) < args.num_workers:
         logging.info(f"Waiting for workers... ({len(runner.clients)}/{args.num_workers} connected)")
@@ -134,7 +132,6 @@ def locust_worker_runner_benchmark(args, redisuser):
     Run Locust in Worker mode.
     """
     env = Environment(user_classes=[redisuser])
-    locust.events.init.fire(environment=env, cache_type="valkey_cluster")
 
     runner = WorkerRunner(env, master_host=args.master_bind_host, master_port=args.master_bind_port)
 
@@ -142,4 +139,3 @@ def locust_worker_runner_benchmark(args, redisuser):
     runner.greenlet.join()
 
     logging.info("Worker load test completed.")
-
