@@ -13,10 +13,10 @@ msgpack==1.1.0
 pyzmq==26.4.0
 
 # OpenTelemetry (future use)
-opentelemetry-api==1.29.0
-opentelemetry-sdk==1.29.0
+opentelemetry-api==1.36.0
+opentelemetry-sdk==1.36.0
 opentelemetry-instrumentation-redis==0.50b0
-opentelemetry-proto==1.29.0
+opentelemetry-proto==1.36.0
 opentelemetry-semantic-conventions==0.50b0
 
 # System dependencies
