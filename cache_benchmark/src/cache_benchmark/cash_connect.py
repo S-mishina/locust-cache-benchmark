@@ -96,7 +96,7 @@ class CacheConnect:
                 ssl=bool(strtobool(ssl)),
                 max_connections=safe_pool_size,
                 ssl_cert_reqs=None,
-                # 接続の再利用を促進
+                # Facilitates reuse of connections
                 connection_pool_kwargs={
                     'retry_on_timeout': True,
                     'socket_keepalive': True,
