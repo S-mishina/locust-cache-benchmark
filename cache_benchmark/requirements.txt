@@ -70,7 +70,7 @@ protobuf==5.29.5
 psutil==7.0.0
 ptyprocess==0.7.0
 pycparser==2.22
-Pygments==2.19.1
+Pygments==2.19.2
 pyproject_hooks==1.2.0
 PyScaffold==4.6
 pytest==8.3.5
