@@ -77,8 +77,8 @@ def add_common_arguments(parser):
         "--connections-pool", "-l",
         type=int,
         required=False,
-        default=1000000,
-        help="Specify the number of connections in the pool (default: 1000000)."
+        default=10,
+        help="Specify the number of connections in the pool per user (default: 10)."
     )
     group.add_argument(
         "--retry-count", "-rc",
