@@ -24,6 +24,7 @@ jobs:
     uses: ./.github/workflows/e2etest.yaml
     with:
       cache-platform: 'valkey'
+      cache-port: 7200
     permissions:
       packages: write
       contents: read
