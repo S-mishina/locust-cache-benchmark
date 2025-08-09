@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.13-slim
 COPY dist/locust_cache_benchmark-*.whl /
 RUN <<EOF
     apt-get update && \
