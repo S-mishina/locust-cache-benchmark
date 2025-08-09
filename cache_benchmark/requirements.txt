@@ -20,7 +20,7 @@ opentelemetry-proto==1.29.0
 opentelemetry-semantic-conventions==0.50b0
 
 # System dependencies
-certifi==2025.4.26
+certifi==2025.8.3
 charset-normalizer==3.4.2
 idna==3.10
 packaging==25.0
