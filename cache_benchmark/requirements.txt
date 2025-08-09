@@ -1,5 +1,5 @@
 # Core dependencies
-locust==2.37.3
+locust==2.38.0
 redis==6.4.0
 valkey==6.1.0
 gevent==24.11.1
