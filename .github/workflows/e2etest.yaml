@@ -39,7 +39,7 @@ on:
         description: 'duration of the load test'
 
 jobs:
-  e2etest-redis:
+  e2etest-cache:
     runs-on: ubuntu-24.04
     permissions:
       packages: write
@@ -91,10 +91,14 @@ jobs:
       - name: Run E2E test for Valkey
         if: ${{ inputs.cache-platform == 'valkey' }}
         run: |
-          docker-compose -f docker-compose-${{ inputs.cache-platform }}.yml up -d && \
-          sleep 120 && \
-          poetry run locust_cache_benchmark init ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} --ssl ${{ inputs.cache-ssl }} && \
-          poetry run locust_cache_benchmark loadtest local ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} -r ${{ inputs.cache-hit-rate }} -d ${{ inputs.loadtest-duration }} -c 1 -n 1 -k 1 -t 60 --ssl ${{ inputs.cache-ssl }}
+          docker-compose -f docker-compose-${{ inputs.cache-platform }}.yml up -d
+          echo "Waiting for Valkey cluster initialization..."
+          sleep 180
+          echo "Checking cluster status..."
+          docker logs valkey-node-0 || true
+          docker logs valkey-cluster-init || true
+          poetry run locust_cache_benchmark init ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p 7200 --ssl ${{ inputs.cache-ssl }}
+          poetry run locust_cache_benchmark loadtest local ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p 7200 -r ${{ inputs.cache-hit-rate }} -d ${{ inputs.loadtest-duration }} -c 1 -n 1 -k 1 -t 60 --ssl ${{ inputs.cache-ssl }}
 
       - name: output test result upload
         uses: actions/upload-artifact@v4
