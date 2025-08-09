@@ -9,7 +9,7 @@ tenacity==9.1.2
 psutil==7.0.0
 greenlet==3.2.2
 geventhttpclient==2.3.4
-msgpack==1.1.0
+msgpack==1.1.1
 pyzmq==26.4.0
 
 # OpenTelemetry (future use)
