@@ -1,0 +1,50 @@
+[tool.poetry]
+name = "locust-cache-benchmark"
+version = "1.0.0"
+description = "A tool to perform load testing of Redis and Valkey systems using Locust"
+authors = ["S-mishina"]
+readme = "README.md"
+homepage = "https://github.com/S-mishina/locust-cache-benchmark"
+repository = "https://github.com/S-mishina/locust-cache-benchmark"
+packages = [{include = "cache_benchmark", from = "cache_benchmark/src"}]
+
+[tool.poetry.scripts]
+locust_cache_benchmark = "cache_benchmark.main:main"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+locust = "^2.37.3"
+redis = "^6.1.0"
+valkey = "^6.1.0"
+gevent = "^24.11.1"
+tenacity = "^9.1.2"
+psutil = "^7.0.0"
+greenlet = "^3.2.2"
+geventhttpclient = "^2.3.4"
+msgpack = "^1.1.0"
+pyzmq = "^26.4.0"
+opentelemetry-api = "^1.29.0"
+opentelemetry-sdk = "^1.29.0"
+opentelemetry-instrumentation-redis = "^0.50b0"
+opentelemetry-proto = "^1.29.0"
+opentelemetry-semantic-conventions = "^0.50b0"
+certifi = "^2025.4.26"
+charset-normalizer = "^3.4.2"
+idna = "^3.10"
+packaging = "^25.0"
+typing_extensions = "^4.13.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+pytest-cov = "^6.1.1"
+coverage = "^7.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["cache_benchmark/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

@@ -1,30 +1,54 @@
 version: '3.8'
 
 services:
-  valkey-master:
-    image: bitnami/valkey-cluster
-    container_name: valkey-master
+  valkey-node-0:
+    image: bitnami/valkey-cluster:latest
+    container_name: valkey-node-0
     environment:
-      - VALKEY_MODE=master
       - ALLOW_EMPTY_PASSWORD=yes
-      - VALKEY_NODES=valkey-master,valkey-worker-1,valkey-worker-2
+      - VALKEY_NODES=valkey-node-0,valkey-node-1,valkey-node-2
     ports:
-      - "7200:7200"
+      - "7200:6379"
+    volumes:
+      - valkey_data_0:/bitnami/valkey/data
 
-  valkey-worker-1:
-    image: bitnami/valkey-cluster
-    container_name: valkey-worker-1
+  valkey-node-1:
+    image: bitnami/valkey-cluster:latest
+    container_name: valkey-node-1
     environment:
-      - VALKEY_MODE=worker
-      - VALKEY_MASTER_HOST=valkey-master
       - ALLOW_EMPTY_PASSWORD=yes
-      - VALKEY_NODES=valkey-master,valkey-worker-1,valkey-worker-2
+      - VALKEY_NODES=valkey-node-0,valkey-node-1,valkey-node-2
+    ports:
+      - "7201:6379"
+    volumes:
+      - valkey_data_1:/bitnami/valkey/data
 
-  valkey-worker-2:
-    image: bitnami/valkey-cluster
-    container_name: valkey-worker-2
+  valkey-node-2:
+    image: bitnami/valkey-cluster:latest
+    container_name: valkey-node-2
     environment:
-      - VALKEY_MODE=worker
-      - VALKEY_MASTER_HOST=valkey-master
       - ALLOW_EMPTY_PASSWORD=yes
-      - VALKEY_NODES=valkey-master,valkey-worker-1,valkey-worker-2
+      - VALKEY_NODES=valkey-node-0,valkey-node-1,valkey-node-2
+    ports:
+      - "7202:6379"
+    volumes:
+      - valkey_data_2:/bitnami/valkey/data
+
+  valkey-cluster-init:
+    image: bitnami/valkey-cluster:latest
+    depends_on:
+      - valkey-node-0
+      - valkey-node-1
+      - valkey-node-2
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - VALKEY_CLUSTER_CREATOR=yes
+      - VALKEY_CLUSTER_REPLICAS=0
+      - VALKEY_NODES=valkey-node-0,valkey-node-1,valkey-node-2
+      - VALKEY_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=30
+    restart: "no"
+
+volumes:
+  valkey_data_0:
+  valkey_data_1:
+  valkey_data_2:
