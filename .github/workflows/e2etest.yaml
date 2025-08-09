@@ -85,16 +85,16 @@ jobs:
         run: |
           docker-compose -f docker-compose-${{ inputs.cache-platform }}.yml up -d && \
           sleep 60 && \
-          locust_cache_benchmark init ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} --ssl ${{ inputs.cache-ssl }} && \
-          locust_cache_benchmark loadtest local ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} -r ${{ inputs.cache-hit-rate }} -d ${{ inputs.loadtest-duration }} -c 1 -n 1 -k 1 -t 60 --ssl ${{ inputs.cache-ssl }}
+          poetry run locust_cache_benchmark init ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} --ssl ${{ inputs.cache-ssl }} && \
+          poetry run locust_cache_benchmark loadtest local ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} -r ${{ inputs.cache-hit-rate }} -d ${{ inputs.loadtest-duration }} -c 1 -n 1 -k 1 -t 60 --ssl ${{ inputs.cache-ssl }}
 
-      - name: Run E2E test for Vallky
-        if: ${{ github.event.inputs.cache-platform == 'valkey' }}
+      - name: Run E2E test for Valkey
+        if: ${{ inputs.cache-platform == 'valkey' }}
         run: |
           docker-compose -f docker-compose-${{ inputs.cache-platform }}.yml up -d && \
           sleep 60 && \
-          locust_cache_benchmark init ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} --ssl ${{ inputs.cache-ssl }} && \
-          locust_cache_benchmark loadtest local ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} -r ${{ inputs.cache-hit-rate }} -d ${{ inputs.loadtest-duration }} -c 1 -n 1 -k 1 -t 60 --ssl ${{ inputs.cache-ssl }}
+          poetry run locust_cache_benchmark init ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} --ssl ${{ inputs.cache-ssl }} && \
+          poetry run locust_cache_benchmark loadtest local ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} -r ${{ inputs.cache-hit-rate }} -d ${{ inputs.loadtest-duration }} -c 1 -n 1 -k 1 -t 60 --ssl ${{ inputs.cache-ssl }}
 
       - name: output test result upload
         uses: actions/upload-artifact@v4
