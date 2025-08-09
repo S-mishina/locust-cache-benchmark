@@ -20,6 +20,16 @@ jobs:
       attestations: write
       id-token: write
 
+  e2etest-valkey:
+    uses: ./.github/workflows/e2etest.yaml
+    with:
+      cache-platform: 'valkey'
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+
   unittest:
     runs-on: ubuntu-24.04
     permissions:
