@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # Redis cluster (existing)
+  redis-cluster:
+    image: grokzen/redis-cluster:6.2.14
+    ports:
+      - "7100-7105:7100-7105"
+    environment:
+      - "INITIAL_PORT=7100"
+      - "REDIS_CLUSTER_IP=0.0.0.0"
+      - "IP=0.0.0.0"
+      - "BIND_ADDRESS=0.0.0.0"
+    restart: "no"
+
+  # Redis Exporter for Prometheus
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis-cluster:7100
+      - REDIS_EXPORTER_INCL_SYSTEM_METRICS=true
+    depends_on:
+      - redis-cluster
+    command: 
+      - '--redis.addr=redis://redis-cluster:7100'
+      - '--redis.addr=redis://redis-cluster:7101'
+      - '--redis.addr=redis://redis-cluster:7102'
+      - '--redis.addr=redis://redis-cluster:7103'
+      - '--redis.addr=redis://redis-cluster:7104'
+      - '--redis.addr=redis://redis-cluster:7105'
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - redis-exporter
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_API_KEY_MAX_SECONDS_TO_LIVE=-1
+      # Pre-configure service account for MCP
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/provisioning:/etc/grafana/provisioning
+      - ./monitoring/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+
+  # Grafana初期化コンテナ
+  grafana-init:
+    image: alpine:latest
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/init-grafana.sh:/init-grafana.sh
+    command: >
+      sh -c "
+        apk add --no-cache curl &&
+        sh /init-grafana.sh
+      "
+    depends_on:
+      - grafana
+    profiles:
+      - mcp
+
+  # Grafana MCP Server
+  grafana-mcp:
+    image: mcp/grafana:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - GRAFANA_URL=http://grafana:3000
+      - GRAFANA_API_KEY=${GRAFANA_API_KEY:-your_grafana_api_key_here}
+    command: ["-debug"]
+    depends_on:
+      - grafana
+    profiles:
+      - mcp
+    # デフォルトではSSEモードで起動される（デバッグモード有効）
+
+  # Node Exporter (for system metrics)
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.rootfs=/host'
+    volumes:
+      - '/:/host:ro,rslave'
+
+volumes:
+  prometheus_data:
+  grafana_data:
