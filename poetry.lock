@@ -929,13 +929,13 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "locust"
-version = "2.39.1"
+version = "2.40.4"
 description = "Developer-friendly load testing framework"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "locust-2.39.1-py3-none-any.whl", hash = "sha256:fd5148f2f1a4ed34aee968abc4393674e69d1b5e1b54db50a397f6eb09ce0b04"},
-    {file = "locust-2.39.1.tar.gz", hash = "sha256:6bdd19e27edf9a1c84391d6cf6e9a737dfb832be7dfbf39053191ae31b9cc498"},
+    {file = "locust-2.40.4-py3-none-any.whl", hash = "sha256:50e647a73c5a4e7a775c6e4311979472fce8b00ed783837a2ce9bb36786f7d1a"},
+    {file = "locust-2.40.4.tar.gz", hash = "sha256:3a3a470459edc4ba1349229bf1aca4c0cb651c4e2e3f85d3bc28fe8118f5a18f"},
 ]
 
 [package.dependencies]
@@ -948,17 +948,15 @@ geventhttpclient = ">=2.3.1"
 locust-cloud = ">=1.26.3"
 msgpack = ">=1.0.0"
 psutil = ">=5.9.1"
+pytest = ">=8.3.3,<9.0.0"
 python-engineio = ">=4.12.2"
 python-socketio = {version = ">=5.13.0", extras = ["client"]}
 pywin32 = {version = "*", markers = "sys_platform == \"win32\""}
 pyzmq = ">=25.0.0"
-requests = [
-    {version = ">=2.26.0", markers = "python_version <= \"3.11\""},
-    {version = ">=2.32.2", markers = "python_version > \"3.11\""},
-]
+requests = ">=2.32.2"
 setuptools = ">=70.0.0"
 tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
-typing-extensions = {version = ">=4.6.0", markers = "python_version < \"3.11\""}
+typing-extensions = {version = ">=4.6.0", markers = "python_version < \"3.12\""}
 werkzeug = ">=2.0.0"
 
 [package.extras]
