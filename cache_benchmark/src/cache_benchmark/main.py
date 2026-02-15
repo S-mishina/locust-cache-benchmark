@@ -51,8 +51,12 @@ def init_valkey_load_test(args):
     if cache_client is None:
         logger.error("Redis client initialization failed.")
         sys.exit(1)
-    value = generate_string(args.value_size)
-    init_cache_set(cache_client, value, int(os.environ["TTL"]))
+    try:
+        value = generate_string(args.value_size)
+        init_cache_set(cache_client, value, int(os.environ["TTL"]))
+    finally:
+        cache_client.close()
+        logger.info("Valkey connection closed after init.")
 
 def init_redis_load_test(args):
     set_env_vars(args)
@@ -62,8 +66,12 @@ def init_redis_load_test(args):
     if cache_client is None:
         logger.error("Redis client initialization failed.")
         sys.exit(1)
-    value = generate_string(args.value_size)
-    init_cache_set(cache_client, value, int(os.environ["TTL"]))
+    try:
+        value = generate_string(args.value_size)
+        init_cache_set(cache_client, value, int(os.environ["TTL"]))
+    finally:
+        cache_client.close()
+        logger.info("Redis connection closed after init.")
 
 def main():
     parser = argparse.ArgumentParser(
