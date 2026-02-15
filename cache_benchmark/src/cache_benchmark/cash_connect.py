@@ -2,15 +2,25 @@ from redis.cluster import RedisCluster, ClusterDownError, ClusterNode
 from redis.exceptions import TimeoutError, ConnectionError
 from valkey.cluster import ValkeyCluster as ValkeyCluster, ClusterNode as ValleyClusterNode, ClusterDownError as ValkeyClusterDownError
 from valkey.exceptions import ConnectionError as ValkeyConnectionError, TimeoutError as ValkeyTimeoutError
-from distutils.util import strtobool
 import os
 import logging
+
+
+def strtobool(val):
+    val = str(val).strip().lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return 1
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return 0
+    else:
+        raise ValueError(f"invalid truth value {val!r}")
+
 
 class CacheConnect:
     def redis_connect(self):
         """
         Initializes a connection to the Redis cluster.
-        
+
         Returns:
             RedisCluster: Redis cluster connection object.
         """
@@ -19,10 +29,10 @@ class CacheConnect:
         connections_pool = os.environ.get("CONNECTIONS_POOL", "10")
         ssl = os.environ.get("SSL")
         query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
-        
+
         # Limit connection pool size to a safe range
         safe_pool_size = min(int(connections_pool), 50)
-        
+
         logging.info(f"Creating Redis connection with pool size: {safe_pool_size}")
         logging.info(f"Connecting to Redis cluster at {redis_host}:{redis_port} SSL={ssl}")
 
@@ -75,13 +85,13 @@ class CacheConnect:
         connections_pool = os.environ.get("CONNECTIONS_POOL", "10")
         ssl = os.environ.get("SSL")
         query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
-        
+
         # Limit connection pool size to a safe range
         safe_pool_size = min(int(connections_pool), 50)
-        
+
         logging.info(f"Creating Valkey connection with pool size: {safe_pool_size}")
         logging.info(f"Connecting to Valkey cluster at {redis_host}:{redis_port} SSL={ssl}")
-        
+
         if not redis_host or not redis_port:
             logging.error("Environment variables REDIS_HOST and REDIS_PORT must be set.")
             return None
