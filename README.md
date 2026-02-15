@@ -1,17 +1,46 @@
-
 # locust-cache-benchmark
 
-The load testing tool described here builds on the foundational insights provided by the native [redis-benchmark]([redis-benchmark](https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/)) tool, which is an excellent utility for measuring [Redis](https://redis.io/) & [Valkey](https://valkey.io/) throughput and latency under controlled conditions. While [redis-benchmark](https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/) excels at providing raw performance metrics for [Redis](https://redis.io/), this custom solution is designed to extend those capabilities for capacity planning in production-like environments.
+The load testing tool described here builds on the foundational
+insights provided by the native
+[redis-benchmark][redis-bench] tool,
+which is an excellent utility for measuring
+[Redis](https://redis.io/) & [Valkey](https://valkey.io/)
+throughput and latency under controlled conditions.
+While [redis-benchmark][redis-bench]
+excels at providing raw performance metrics for
+[Redis](https://redis.io/),
+this custom solution is designed to extend those capabilities
+for capacity planning in production-like environments.
 
-By using [Locust](https://locust.io/), this tool simulates realistic workloads with adjustable parameters such as cache hit rates, request rates (get/set req/sec), TTL, and cache sizes. It replicates both cache hit and miss scenarios using random keys, offering a more dynamic testing environment. Additionally, retry logic ensures robustness against temporary errors in the [Redis](https://redis.io/) & [Valkey](https://valkey.io/) cluster, making it suitable for testing under varying conditions.
+By using [Locust](https://locust.io/), this tool simulates
+realistic workloads with adjustable parameters such as
+cache hit rates, request rates (get/set req/sec), TTL,
+and cache sizes. It replicates both cache hit and miss
+scenarios using random keys, offering a more dynamic
+testing environment. Additionally, retry logic ensures
+robustness against temporary errors in the
+[Redis](https://redis.io/) & [Valkey](https://valkey.io/)
+cluster, making it suitable for testing under varying
+conditions.
 
-This approach complements [redis-benchmark](https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/) by focusing on scenarios that mimic real-world application behaviors. Test results, including total requests, cache hits, and hit rates, provide actionable insights for capacity planning and performance optimization in [Redis](https://redis.io/) & [Valkey](https://valkey.io/) deployments.
+This approach complements [redis-benchmark][redis-bench]
+by focusing on scenarios that mimic real-world application
+behaviors. Test results, including total requests,
+cache hits, and hit rates, provide actionable insights
+for capacity planning and performance optimization in
+[Redis](https://redis.io/) & [Valkey](https://valkey.io/)
+deployments.
 
 ## Features
 
-- Executes load tests on [Redis](https://redis.io/) & [Valkey](https://valkey.io/) clusters
-- Allows configuration of parameters such as cache hit rate, value size, and TTL
+- Executes load tests on
+  [Redis](https://redis.io/) & [Valkey](https://valkey.io/)
+  clusters
+- Allows configuration of parameters such as
+  cache hit rate, value size, and TTL
 - Displays test results in real-time
+- Supports distributed load testing with
+  Locust master/worker mode
 
 ## Supported Environments
 
@@ -31,87 +60,202 @@ The above cache service is supported.
 ## Attention
 
 - **About Scenario Execution Time**
-  - It is recommended to test at least twice as long as the TTL of the data (SET) being stored on the scenario.
-    -  It may not be possible to reproduce the assumed situation unless the cache deletion by TTL is performed at least once in the scenario. (except without ttl).
+  - It is recommended to test at least twice as long
+    as the TTL of the data (SET) being stored
+    on the scenario.
+    - It may not be possible to reproduce the assumed
+      situation unless the cache deletion by TTL is
+      performed at least once in the scenario.
+      (except without ttl).
 - **Role of locust-cache-benchmark**
-  - This tool is designed to simulate request load (get/set req/sec), cache hit rate, cache size, and TTL as expected in a production Redis environment. By applying production-like load over a specific period, it helps in capacity planning and performance evaluation of Redis.
-     - However, to maintain a consistent cache hit rate, this tool sends set requests for the portion of requests outside the cache hit rate (100% - cache hit rate). As a result, the number of cached items may exceed what is typically expected in the actual production environment. Please take this characteristic into account when interpreting test results.
+  - This tool is designed to simulate request load
+    (get/set req/sec), cache hit rate, cache size,
+    and TTL as expected in a production Redis
+    environment. By applying production-like load
+    over a specific period, it helps in capacity
+    planning and performance evaluation of Redis.
+    - However, to maintain a consistent cache hit rate,
+      this tool sends set requests for the portion of
+      requests outside the cache hit rate
+      (100% - cache hit rate). As a result, the number
+      of cached items may exceed what is typically
+      expected in the actual production environment.
+      Please take this characteristic into account
+      when interpreting test results.
 - **Memory usage and eviction policies**
-  - The increased number of cached items may lead to higher memory usage than expected. Monitor Redis memory consumption and ensure eviction policies are configured appropriately.
+  - The increased number of cached items may lead to
+    higher memory usage than expected. Monitor Redis
+    memory consumption and ensure eviction policies
+    are configured appropriately.
 - **About request volume**
-  - In the creator's environment, the volume of requests is known to be about 700 req/sec more than the overall expected capacity. (Cache hit rate is the same) Therefore, it is required to take this into account before implementation.
-    - In the author's environment, I dropped 700 req/sec and set up connection, and it executed as expected.
+  - In the creator's environment, the volume of
+    requests is known to be about 700 req/sec more
+    than the overall expected capacity.
+    (Cache hit rate is the same) Therefore, it is
+    required to take this into account before
+    implementation.
+    - In the author's environment, I dropped
+      700 req/sec and set up connection, and it
+      executed as expected.
 - **About this tool**
-  - This tool uses the init and loadtest commands to achieve load testing. This tool can be executed using workflow, but a dependency between the init and loadtest commands is necessary because if the init is done on a job running in parallel, a useless set for redis will be executed.
+  - This tool uses the init and loadtest commands
+    to achieve load testing. This tool can be
+    executed using workflow, but a dependency between
+    the init and loadtest commands is necessary
+    because if the init is done on a job running
+    in parallel, a useless set for redis will be
+    executed.
 
 ## Installation
 
-### Local Machine
-
-Install the necessary dependencies using the following command:
+### Local Machine (Poetry)
 
 ```sh
-pip install -r redis-benchmark/requirements.txt
+pip install poetry
+poetry install
 ```
 
-### Container
+### Local Machine (pip)
 
-Build and run the Docker container using the command below:
+```sh
+pip install locust-cache-benchmark
+```
+
+### Container Image
 
 ```sh
 docker pull ghcr.io/s-mishina/locust-redis-benchmark:latest
 ```
 
-## Usage (Sample)
+## Usage
+
+### Commands
+
+This tool provides the following subcommands:
+
+| Command                   | Description                                           |
+| ------------------------- | ----------------------------------------------------- |
+| `init redis`              | Initialize Redis cluster with test keys               |
+| `init valkey`             | Initialize Valkey cluster with test keys              |
+| `loadtest local redis`    | Run a local load test on Redis                        |
+| `loadtest local valkey`   | Run a local load test on Valkey                       |
+| `loadtest cluster redis`  | Run a distributed (master/worker) load test on Redis  |
+| `loadtest cluster valkey` | Run a distributed (master/worker) load test on Valkey |
 
 ### Local Machine
 
-To initialize a Redis cluster, run the following command:
+To initialize a Redis cluster:
 
 ```sh
-locust_cache_benchmark init redis -f <hostname> -p <port>
+locust_cache_benchmark init redis \
+  -f <hostname> -p <port>
 ```
 
-To execute a load test on a Redis cluster, use the command:
+To execute a local load test on a Redis cluster:
 
 ```sh
-locust_cache_benchmark loadtest redis -f <hostname> -p <port> -r <hit_rate> -d <duration> -c <connections> -n <requests> -k <value_size> -t <ttl>
+locust_cache_benchmark loadtest local redis \
+  -f <hostname> -p <port> \
+  -r <hit_rate> -d <duration> \
+  -c <connections> -n <spawn_rate> \
+  -k <value_size> -t <ttl>
 ```
 
-### Container
-
-To initialize a Redis cluster, use the following command:
+To execute a distributed load test (master):
 
 ```sh
-docker run --rm -it ghcr.io/s-mishina/locust-redis-benchmark:latest locust_cache_benchmark init redis -f <hostname> -p <port>
+locust_cache_benchmark loadtest cluster redis \
+  -f <hostname> -p <port> \
+  -r <hit_rate> -d <duration> \
+  -c <connections> -n <spawn_rate> \
+  -k <value_size> -t <ttl> \
+  --cluster-mode master \
+  --master-bind-host 0.0.0.0 \
+  --master-bind-port 5557 \
+  --num-workers 3
 ```
 
-To execute a load test on a Redis cluster, run:
+To execute a distributed load test (worker):
 
 ```sh
-docker run --rm -it ghcr.io/s-mishina/locust-redis-benchmark:latest locust_cache_benchmark loadtest redis -f <hostname> -p <port> -r <hit_rate> -d <duration> -c <connections> -n <requests> -k <value_size> -t <ttl>
+locust_cache_benchmark loadtest cluster redis \
+  -f <hostname> -p <port> \
+  --cluster-mode worker \
+  --master-bind-host <master_host> \
+  --master-bind-port 5557
 ```
+
+### Container Usage
+
+To initialize a Redis cluster:
+
+```sh
+docker run --rm -it \
+  ghcr.io/s-mishina/locust-redis-benchmark:latest \
+  locust_cache_benchmark init redis \
+  -f <hostname> -p <port>
+```
+
+To execute a load test on a Redis cluster:
+
+```sh
+docker run --rm -it \
+  ghcr.io/s-mishina/locust-redis-benchmark:latest \
+  locust_cache_benchmark loadtest local redis \
+  -f <hostname> -p <port> \
+  -r <hit_rate> -d <duration> \
+  -c <connections> -n <spawn_rate> \
+  -k <value_size> -t <ttl>
+```
+
+### Kubernetes
+
+A sample Kubernetes Job manifest is available at
+[sample-manifest/job.yaml](./sample-manifest/job.yaml).
 
 ## Parameters
 
-- `--fqdn, -f`: Hostname of the Redis server (default: localhost)
-- `--port, -p`: Port of the Redis server (default: 6379)
-- `--hit-rate, -r`: Cache hit rate (default: 0.5)
-- `--duration, -d`: Test duration in seconds (default: 60)
-- `--connections, -c`: Number of concurrent connections (default: 1)
-- `--spawn-rate, -n`: Number of requests per second (default: 1)
-- `--value-size, -k`: Value size in KB (default: 1)
-- `--ttl, -t`: Time-to-live of the key in seconds (default: 60)
-- `--connections-pool`, -l: Number of connections in the pool (default: 1000000)
-- `--query-timeout, -q`: Query timeout in seconds (default: 1)
-- `--set-keys, -s`: Number of keys to set in the cache (default: 1000) ※ Parameter for init redis only
+### Common Parameters
+
+| Parameter            | Short | Type  | Default     | Description                           |
+| -------------------- | ----- | ----- | ----------- | ------------------------------------- |
+| `--fqdn`             | `-f`  | str   | `localhost` | Hostname of the cache server          |
+| `--port`             | `-p`  | int   | `6379`      | Port of the cache server              |
+| `--ssl`              | `-x`  | str   | `False`     | Use SSL for the connection            |
+| `--query-timeout`    | `-q`  | int   | `1`         | Query timeout in seconds              |
+| `--hit-rate`         | `-r`  | float | `0.5`       | Cache hit rate (0.0 - 1.0)            |
+| `--duration`         | `-d`  | int   | `60`        | Test duration in seconds              |
+| `--connections`      | `-c`  | int   | `1`         | Number of concurrent users            |
+| `--spawn_rate`       | `-n`  | int   | `1`         | User spawn rate per second            |
+| `--value-size`       | `-k`  | int   | `1`         | Value size in KB                      |
+| `--ttl`              | `-t`  | int   | `60`        | Time-to-live for keys in seconds      |
+| `--connections-pool` | `-l`  | int   | `10`        | Connection pool size per cluster node |
+| `--retry-count`      | `-rc` | int   | `3`         | Number of retries on failure          |
+| `--retry-wait`       | `-rw` | int   | `2`         | Wait time between retries in seconds  |
+| `--set-keys`         | `-s`  | int   | `1000`      | Number of keys to set (init only)     |
+
+### Distributed Mode Parameters
+
+| Parameter            | Short  | Type | Default     | Description                     |
+| -------------------- | ------ | ---- | ----------- | ------------------------------- |
+| `--cluster-mode`     | `-cm`  | str  | `None`      | `master` or `worker`            |
+| `--master-bind-host` | `-mbh` | str  | `127.0.0.1` | Master node hostname            |
+| `--master-bind-port` | `-mbp` | int  | `5557`      | Master node port                |
+| `--num-workers`      | `-nw`  | int  | `1`         | Number of workers (master only) |
 
 ## Tips
 
-### It takes time for cloud vendor metrics to appear during the test
+### Cloud vendor metrics delay
 
-If you are using a monitoring tool (e.g., datadog), you can enable redis integration to speed up the data acquisition time by running the redis command to acquire the data.
+If you are using a monitoring tool (e.g., datadog),
+you can enable redis integration to speed up the
+data acquisition time by running the redis command
+to acquire the data.
 
-### I would like to see how you are hitting redis in addition to locust's standard output as a TRACE
+### Trace support
 
-This tool will be otel compatible; once otel is supported, you will be able to use otel to check trace.
+This tool will be otel compatible; once otel is
+supported, you will be able to use otel to check
+trace.
+
+[redis-bench]: https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/

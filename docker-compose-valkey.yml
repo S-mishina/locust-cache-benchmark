@@ -1,54 +1,45 @@
-version: '3.8'
-
 services:
-  valkey-node-0:
-    image: bitnami/valkey-cluster:latest
-    container_name: valkey-node-0
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - VALKEY_NODES=valkey-node-0,valkey-node-1,valkey-node-2
+  valkey-cluster:
+    image: valkey/valkey:latest
+    container_name: valkey-cluster
     ports:
-      - "7200:6379"
-    volumes:
-      - valkey_data_0:/bitnami/valkey/data
+      - "7200-7202:7200-7202"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for port in 7200 7201 7202; do
+          mkdir -p /data/$$port
+          cat > /data/$$port/valkey.conf <<CONF
+        port $$port
+        cluster-enabled yes
+        cluster-config-file /data/$$port/nodes.conf
+        cluster-node-timeout 5000
+        appendonly yes
+        bind 0.0.0.0
+        protected-mode no
+        CONF
+          valkey-server /data/$$port/valkey.conf --daemonize yes
+        done
 
-  valkey-node-1:
-    image: bitnami/valkey-cluster:latest
-    container_name: valkey-node-1
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - VALKEY_NODES=valkey-node-0,valkey-node-1,valkey-node-2
-    ports:
-      - "7201:6379"
-    volumes:
-      - valkey_data_1:/bitnami/valkey/data
+        echo "Waiting for nodes to start..."
+        sleep 5
+        for port in 7200 7201 7202; do
+          until valkey-cli -p $$port ping | grep -q PONG; do
+            echo "Waiting for port $$port..."
+            sleep 1
+          done
+          echo "Port $$port is ready"
+        done
 
-  valkey-node-2:
-    image: bitnami/valkey-cluster:latest
-    container_name: valkey-node-2
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - VALKEY_NODES=valkey-node-0,valkey-node-1,valkey-node-2
-    ports:
-      - "7202:6379"
-    volumes:
-      - valkey_data_2:/bitnami/valkey/data
+        echo "Creating cluster..."
+        echo "yes" | valkey-cli --cluster create \
+          127.0.0.1:7200 \
+          127.0.0.1:7201 \
+          127.0.0.1:7202 \
+          --cluster-replicas 0
+        echo "Cluster created"
+        valkey-cli -p 7200 cluster info
 
-  valkey-cluster-init:
-    image: bitnami/valkey-cluster:latest
-    depends_on:
-      - valkey-node-0
-      - valkey-node-1
-      - valkey-node-2
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - VALKEY_CLUSTER_CREATOR=yes
-      - VALKEY_CLUSTER_REPLICAS=0
-      - VALKEY_NODES=valkey-node-0,valkey-node-1,valkey-node-2
-      - VALKEY_CLUSTER_SLEEP_BEFORE_DNS_LOOKUP=30
+        # Keep the container running
+        tail -f /dev/null
     restart: "no"
-
-volumes:
-  valkey_data_0:
-  valkey_data_1:
-  valkey_data_2:
