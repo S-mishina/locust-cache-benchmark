@@ -4,7 +4,7 @@ import logging
 import gevent
 from locust.env import Environment
 from locust.runners import LocalRunner , MasterRunner, WorkerRunner
-import locust
+from locust import constant_throughput
 from locust.stats import stats_printer
 import time
 
@@ -94,6 +94,7 @@ def set_env_cache_retry(args):
 # os.environ["cache_retry_delay"] = str(args.cache_retry_delay)
 
 def locust_runner_cash_benchmark(args,redisuser):
+    redisuser.wait_time = constant_throughput(float(os.environ["REQUEST_RATE"]))
     env = Environment(user_classes=[redisuser])
     env.events.request.add_listener(lambda **kwargs: stats_printer(env.stats))
     runner = LocalRunner(env)
@@ -111,6 +112,7 @@ def locust_master_runner_benchmark(args, redisuser):
     """
     Run Locust in Master mode.
     """
+    redisuser.wait_time = constant_throughput(float(os.environ["REQUEST_RATE"]))
     env = Environment(user_classes=[redisuser])
     env.events.request.add_listener(lambda **kwargs: stats_printer(env.stats))
     runner = MasterRunner(env, master_bind_host=args.master_bind_host, master_bind_port=args.master_bind_port)
@@ -132,6 +134,7 @@ def locust_worker_runner_benchmark(args, redisuser):
     """
     Run Locust in Worker mode.
     """
+    redisuser.wait_time = constant_throughput(float(os.environ["REQUEST_RATE"]))
     env = Environment(user_classes=[redisuser])
 
     runner = WorkerRunner(env, master_host=args.master_bind_host, master_port=args.master_bind_port)
