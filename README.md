@@ -158,7 +158,8 @@ locust_cache_benchmark loadtest local redis \
   -f <hostname> -p <port> \
   -r <hit_rate> -d <duration> \
   -c <connections> -n <spawn_rate> \
-  -k <value_size> -t <ttl>
+  -k <value_size> -t <ttl> \
+  -rr <request_rate>
 ```
 
 To execute a distributed load test (master):
@@ -169,6 +170,7 @@ locust_cache_benchmark loadtest cluster redis \
   -r <hit_rate> -d <duration> \
   -c <connections> -n <spawn_rate> \
   -k <value_size> -t <ttl> \
+  -rr <request_rate> \
   --cluster-mode master \
   --master-bind-host 0.0.0.0 \
   --master-bind-port 5557 \
@@ -205,7 +207,8 @@ docker run --rm -it \
   -f <hostname> -p <port> \
   -r <hit_rate> -d <duration> \
   -c <connections> -n <spawn_rate> \
-  -k <value_size> -t <ttl>
+  -k <value_size> -t <ttl> \
+  -rr <request_rate>
 ```
 
 ### Kubernetes
@@ -217,22 +220,23 @@ A sample Kubernetes Job manifest is available at
 
 ### Common Parameters
 
-| Parameter            | Short | Type  | Default     | Description                           |
-| -------------------- | ----- | ----- | ----------- | ------------------------------------- |
-| `--fqdn`             | `-f`  | str   | `localhost` | Hostname of the cache server          |
-| `--port`             | `-p`  | int   | `6379`      | Port of the cache server              |
-| `--ssl`              | `-x`  | str   | `False`     | Use SSL for the connection            |
-| `--query-timeout`    | `-q`  | int   | `1`         | Query timeout in seconds              |
-| `--hit-rate`         | `-r`  | float | `0.5`       | Cache hit rate (0.0 - 1.0)            |
-| `--duration`         | `-d`  | int   | `60`        | Test duration in seconds              |
-| `--connections`      | `-c`  | int   | `1`         | Number of concurrent users            |
-| `--spawn_rate`       | `-n`  | int   | `1`         | User spawn rate per second            |
-| `--value-size`       | `-k`  | int   | `1`         | Value size in KB                      |
-| `--ttl`              | `-t`  | int   | `60`        | Time-to-live for keys in seconds      |
-| `--connections-pool` | `-l`  | int   | `10`        | Connection pool size per cluster node |
-| `--retry-count`      | `-rc` | int   | `3`         | Number of retries on failure          |
-| `--retry-wait`       | `-rw` | int   | `2`         | Wait time between retries in seconds  |
-| `--set-keys`         | `-s`  | int   | `1000`      | Number of keys to set (init only)     |
+| Parameter            | Short | Type  | Default     | Description                                                 |
+| -------------------- | ----- | ----- | ----------- | ----------------------------------------------------------- |
+| `--fqdn`             | `-f`  | str   | `localhost` | Hostname of the cache server                                |
+| `--port`             | `-p`  | int   | `6379`      | Port of the cache server                                    |
+| `--ssl`              | `-x`  | str   | `False`     | Use SSL for the connection                                  |
+| `--query-timeout`    | `-q`  | int   | `1`         | Query timeout in seconds                                    |
+| `--hit-rate`         | `-r`  | float | `0.5`       | Cache hit rate (0.0 - 1.0)                                  |
+| `--duration`         | `-d`  | int   | `60`        | Test duration in seconds                                    |
+| `--connections`      | `-c`  | int   | `1`         | Number of concurrent users                                  |
+| `--spawn_rate`       | `-n`  | int   | `1`         | User spawn rate per second                                  |
+| `--value-size`       | `-k`  | int   | `1`         | Value size in KB                                            |
+| `--ttl`              | `-t`  | int   | `60`        | Time-to-live for keys in seconds                            |
+| `--connections-pool` | `-l`  | int   | `10`        | Connection pool size per cluster node                       |
+| `--request-rate`     | `-rr` | float | `1.0`       | Request rate per user per second (uses constant_throughput) |
+| `--retry-count`      | `-rc` | int   | `3`         | Number of retries on failure                                |
+| `--retry-wait`       | `-rw` | int   | `2`         | Wait time between retries in seconds                        |
+| `--set-keys`         | `-s`  | int   | `1000`      | Number of keys to set (init only)                           |
 
 ### Distributed Mode Parameters
 
