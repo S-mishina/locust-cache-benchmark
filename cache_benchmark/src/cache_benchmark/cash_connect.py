@@ -30,10 +30,9 @@ class CacheConnect:
         ssl = os.environ.get("SSL")
         query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
 
-        # Limit connection pool size to a safe range
-        safe_pool_size = min(int(connections_pool), 50)
+        pool_size = int(connections_pool)
 
-        logging.info(f"Creating Redis connection with pool size: {safe_pool_size}")
+        logging.info(f"Creating Redis connection with pool size: {pool_size}")
         logging.info(f"Connecting to Redis cluster at {redis_host}:{redis_port} SSL={ssl}")
 
         if not redis_host or not redis_port:
@@ -49,7 +48,7 @@ class CacheConnect:
                 decode_responses=True,
                 timeout=int(query_timeout),
                 ssl=bool(strtobool(ssl)),
-                max_connections=safe_pool_size,
+                max_connections=pool_size,
                 ssl_cert_reqs=None,
                 # Facilitates reuse of connections
                 connection_pool_kwargs={
@@ -86,10 +85,9 @@ class CacheConnect:
         ssl = os.environ.get("SSL")
         query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
 
-        # Limit connection pool size to a safe range
-        safe_pool_size = min(int(connections_pool), 50)
+        pool_size = int(connections_pool)
 
-        logging.info(f"Creating Valkey connection with pool size: {safe_pool_size}")
+        logging.info(f"Creating Valkey connection with pool size: {pool_size}")
         logging.info(f"Connecting to Valkey cluster at {redis_host}:{redis_port} SSL={ssl}")
 
         if not redis_host or not redis_port:
@@ -104,7 +102,7 @@ class CacheConnect:
                 decode_responses=True,
                 timeout=int(query_timeout),
                 ssl=bool(strtobool(ssl)),
-                max_connections=safe_pool_size,
+                max_connections=pool_size,
                 ssl_cert_reqs=None,
                 # Facilitates reuse of connections
                 connection_pool_kwargs={

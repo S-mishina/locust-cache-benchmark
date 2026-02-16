@@ -15,10 +15,10 @@ logging.basicConfig(level=logging.DEBUG)
 def generate_string(size_in_kb):
     """
     Generates a string of a given size in kilobytes.
-    
+
     Args:
         size_in_kb (int): Size of the string in kilobytes.
-    
+
     Returns:
         str: Generated string.
     """
@@ -82,6 +82,7 @@ def set_env_vars(args):
     os.environ["TTL"] = str(args.ttl)
     os.environ["CONNECTIONS_POOL"] = str(args.connections_pool)
     os.environ["SSL"] = str(args.ssl)
+    os.environ["REQUEST_RATE"] = str(args.request_rate)
 def set_env_cache_retry(args):
     """
     Sets the environment variables for the cache.

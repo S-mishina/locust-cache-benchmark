@@ -5,7 +5,7 @@ import hashlib
 import os
 import logging
 import gevent.lock
-from locust import User, TaskSet, task, between
+from locust import User, TaskSet, task, constant_throughput
 from cache_benchmark.locust_cache import LocustCache
 from cache_benchmark.utils import generate_string
 import random
@@ -53,7 +53,7 @@ class RedisTaskSet(TaskSet):
 
 class RedisUser(User):
     tasks = [RedisTaskSet]
-    wait_time = between(1, 1)
+    wait_time = constant_throughput(float(os.environ.get("REQUEST_RATE", "1.0")))
     host = os.environ.get("REDIS_HOST")
     # Shared connection across all users (RedisCluster is thread/greenlet-safe)
     _shared_cache_conn = None

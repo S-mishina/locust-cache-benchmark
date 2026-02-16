@@ -129,3 +129,10 @@ def add_common_arguments(parser):
         default=1,
         help="Specify the number of workers to connect to the master node (default: 1)."
     )
+    group.add_argument(
+        "--request-rate", "-rr",
+        type=float,
+        required=False,
+        default=1.0,
+        help="Specify the request rate per user per second (default: 1.0). Uses constant_throughput for precise rate control."
+    )
