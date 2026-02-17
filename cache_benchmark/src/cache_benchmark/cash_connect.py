@@ -1,5 +1,7 @@
+from redis import Redis
 from redis.cluster import RedisCluster, ClusterDownError, ClusterNode
 from redis.exceptions import TimeoutError, ConnectionError
+from valkey import Valkey
 from valkey.cluster import ValkeyCluster as ValkeyCluster, ClusterNode as ValleyClusterNode, ClusterDownError as ValkeyClusterDownError
 from valkey.exceptions import ConnectionError as ValkeyConnectionError, TimeoutError as ValkeyTimeoutError
 import os
@@ -72,6 +74,51 @@ class CacheConnect:
             conn = None
         return conn
 
+    def redis_standalone_connect(self):
+        """
+        Initializes a connection to a standalone Redis instance.
+
+        Returns:
+            Redis: Redis connection object, or None on failure.
+        """
+        redis_host = os.environ.get("REDIS_HOST")
+        redis_port = os.environ.get("REDIS_PORT")
+        connections_pool = os.environ.get("CONNECTIONS_POOL", "10")
+        ssl = os.environ.get("SSL")
+        query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
+
+        pool_size = int(connections_pool)
+
+        logging.info(f"Creating Redis standalone connection with pool size: {pool_size}")
+        logging.info(f"Connecting to Redis standalone at {redis_host}:{redis_port} SSL={ssl}")
+
+        if not redis_host or not redis_port:
+            logging.error("Environment variables REDIS_HOST and REDIS_PORT must be set.")
+            return None
+
+        try:
+            conn = Redis(
+                host=redis_host,
+                port=int(redis_port),
+                decode_responses=True,
+                socket_timeout=int(query_timeout),
+                ssl=bool(strtobool(ssl)),
+                max_connections=pool_size,
+                socket_keepalive=True,
+            )
+            conn.ping()
+            logging.info("Redis standalone connection established successfully")
+        except TimeoutError as e:
+            logging.warning(f"Timeout error during Redis standalone initialization: {e}")
+            conn = None
+        except ConnectionError as e:
+            logging.warning(f"Connection error: {e}")
+            conn = None
+        except Exception as e:
+            logging.warning(f"Unexpected error during Redis standalone initialization: {e}")
+            conn = None
+        return conn
+
     def valkey_connect(self):
         """
         Initializes a connection to the Valley cluster.
@@ -123,5 +170,50 @@ class CacheConnect:
             conn = None
         except Exception as e:
             logging.warning(f"Unexpected error during Valkey initialization: {e}")
+            conn = None
+        return conn
+
+    def valkey_standalone_connect(self):
+        """
+        Initializes a connection to a standalone Valkey instance.
+
+        Returns:
+            Valkey: Valkey connection object, or None on failure.
+        """
+        redis_host = os.environ.get("REDIS_HOST")
+        redis_port = os.environ.get("REDIS_PORT")
+        connections_pool = os.environ.get("CONNECTIONS_POOL", "10")
+        ssl = os.environ.get("SSL")
+        query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
+
+        pool_size = int(connections_pool)
+
+        logging.info(f"Creating Valkey standalone connection with pool size: {pool_size}")
+        logging.info(f"Connecting to Valkey standalone at {redis_host}:{redis_port} SSL={ssl}")
+
+        if not redis_host or not redis_port:
+            logging.error("Environment variables REDIS_HOST and REDIS_PORT must be set.")
+            return None
+
+        try:
+            conn = Valkey(
+                host=redis_host,
+                port=int(redis_port),
+                decode_responses=True,
+                socket_timeout=int(query_timeout),
+                ssl=bool(strtobool(ssl)),
+                max_connections=pool_size,
+                socket_keepalive=True,
+            )
+            conn.ping()
+            logging.info("Valkey standalone connection established successfully")
+        except ValkeyTimeoutError as e:
+            logging.warning(f"Timeout error during Valkey standalone initialization: {e}")
+            conn = None
+        except ValkeyConnectionError as e:
+            logging.warning(f"Connection error: {e}")
+            conn = None
+        except Exception as e:
+            logging.warning(f"Unexpected error during Valkey standalone initialization: {e}")
             conn = None
         return conn

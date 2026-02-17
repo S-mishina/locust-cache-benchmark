@@ -73,6 +73,10 @@ class RedisUser(User):
                     cls._shared_cache_conn = cache.redis_connect()
                 elif cache_type == "valkey_cluster":
                     cls._shared_cache_conn = cache.valkey_connect()
+                elif cache_type == "redis":
+                    cls._shared_cache_conn = cache.redis_standalone_connect()
+                elif cache_type == "valkey":
+                    cls._shared_cache_conn = cache.valkey_standalone_connect()
             cls._shared_conn_users += 1
             return cls._shared_cache_conn
 
