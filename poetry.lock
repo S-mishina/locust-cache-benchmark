@@ -1065,14 +1065,14 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "locust"
-version = "2.40.5"
+version = "2.43.3"
 description = "Developer-friendly load testing framework"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "locust-2.40.5-py3-none-any.whl", hash = "sha256:c44a6c415c5218824895bd652a182a958c27a2ceb8427c835d2f4b90d735579b"},
-    {file = "locust-2.40.5.tar.gz", hash = "sha256:4332f03ebfac83c115763e462f22f495783a88f1d237ccbd618d5b27863f5053"},
+    {file = "locust-2.43.3-py3-none-any.whl", hash = "sha256:e032c119b54a9d984cb74a936ee83cfd7d68b3c76c8f308af63d04f11396b553"},
+    {file = "locust-2.43.3.tar.gz", hash = "sha256:b5d2c48f8f7d443e3abdfdd6ec2f7aebff5cd74fab986bcf1e95b375b5c5a54b"},
 ]
 
 [package.dependencies]
@@ -1080,44 +1080,25 @@ configargparse = ">=1.7.1"
 flask = ">=2.0.0"
 flask-cors = ">=3.0.10"
 flask-login = ">=0.6.3"
-gevent = ">=24.10.1,<25.8.1"
+gevent = ">=24.10.1,<25.8.1 || >25.8.1,<26.0.0"
 geventhttpclient = ">=2.3.1"
-locust-cloud = ">=1.27.0"
 msgpack = ">=1.0.0"
 psutil = ">=5.9.1"
-pytest = ">=8.3.3,<9.0.0"
+pytest = ">=8.3.3,<10"
 python-engineio = ">=4.12.2"
 python-socketio = {version = ">=5.13.0", extras = ["client"]}
 pywin32 = {version = "*", markers = "sys_platform == \"win32\""}
 pyzmq = ">=25.0.0"
 requests = ">=2.32.2"
-setuptools = ">=70.0.0"
 tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
 typing-extensions = {version = ">=4.6.0", markers = "python_version < \"3.12\""}
 werkzeug = ">=2.0.0"
 
 [package.extras]
+dns = ["dnspython (>=2.8.0)"]
 milvus = ["pymilvus (>=2.5.0)"]
-
-[[package]]
-name = "locust-cloud"
-version = "1.27.0"
-description = "Locust Cloud"
-optional = false
-python-versions = ">=3.10"
-groups = ["main"]
-files = [
-    {file = "locust_cloud-1.27.0-py3-none-any.whl", hash = "sha256:0ddf732c1702d1d29f8359e261e23147d1bba373ac96c9125f80c290c2dcd9c1"},
-    {file = "locust_cloud-1.27.0.tar.gz", hash = "sha256:b371a6940d978bb221ada9780e796e10e3032ff49ffeacf02c515aa876679b75"},
-]
-
-[package.dependencies]
-configargparse = ">=1.7.1"
-gevent = ">=24.10.1,<26.0.0"
-platformdirs = ">=4.3.6,<5.0.0"
-python-engineio = ">=4.12.2"
-python-socketio = {version = "5.13.0", extras = ["client"]}
-tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
+mqtt = ["paho-mqtt (>=2.1.0)"]
+otel = ["opentelemetry-exporter-otlp-proto-grpc (>=1.38.0)", "opentelemetry-exporter-otlp-proto-http (>=1.38.0)", "opentelemetry-instrumentation-requests (>=0.59b0)", "opentelemetry-instrumentation-urllib3 (>=0.59b0)", "opentelemetry-sdk (>=1.38.0)"]
 
 [[package]]
 name = "markupsafe"
@@ -1446,23 +1427,6 @@ files = [
     {file = "packaging-25.0-py3-none-any.whl", hash = "sha256:29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484"},
     {file = "packaging-25.0.tar.gz", hash = "sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f"},
 ]
-
-[[package]]
-name = "platformdirs"
-version = "4.3.8"
-description = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "platformdirs-4.3.8-py3-none-any.whl", hash = "sha256:ff7059bb7eb1179e2685604f4aaf157cfd9535242bd23742eadc3c13542139b4"},
-    {file = "platformdirs-4.3.8.tar.gz", hash = "sha256:3d512d96e16bcb959a814c9f348431070822a6496326a4be0911c40b5a74c2bc"},
-]
-
-[package.extras]
-docs = ["furo (>=2024.8.6)", "proselint (>=0.14)", "sphinx (>=8.1.3)", "sphinx-autodoc-typehints (>=3)"]
-test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=8.3.4)", "pytest-cov (>=6)", "pytest-mock (>=3.14)"]
-type = ["mypy (>=1.14.1)"]
 
 [[package]]
 name = "pluggy"
