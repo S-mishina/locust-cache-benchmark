@@ -44,6 +44,26 @@ def cluster_redis_load_test(args):
         logger.error("Please provide the --cluster-mode. master or worker")
         sys.exit(1)
 
+def cluster_valkey_load_test(args):
+    if args.cluster_mode is None:
+        logger.error("Cluster mode not provided.")
+        logger.error("Please provide the --cluster-mode. master or worker")
+        sys.exit(1)
+    if args.cluster_mode == "master":
+        set_env_vars(args)
+        set_env_cache_retry(args)
+        os.environ["CACHE_TYPE"] = "valkey_cluster"
+        locust_master_runner_benchmark(args,RedisUser)
+    elif args.cluster_mode == "worker":
+        set_env_vars(args)
+        set_env_cache_retry(args)
+        os.environ["CACHE_TYPE"] = "valkey_cluster"
+        locust_worker_runner_benchmark(args,RedisUser)
+    else:
+        logger.error("Invalid cluster mode provided.")
+        logger.error("Please provide the --cluster-mode. master or worker")
+        sys.exit(1)
+
 def init_valkey_load_test(args):
     set_env_vars(args)
     set_env_cache_retry(args)
@@ -55,7 +75,7 @@ def init_valkey_load_test(args):
         sys.exit(1)
     try:
         value = generate_string(args.value_size)
-        init_cache_set(cache_client, value, int(os.environ["TTL"]))
+        init_cache_set(cache_client, value, int(os.environ["TTL"]), args.set_keys)
     finally:
         cache_client.close()
         logger.info("Valkey connection closed after init.")
@@ -72,7 +92,7 @@ def init_redis_load_test(args):
         sys.exit(1)
     try:
         value = generate_string(args.value_size)
-        init_cache_set(cache_client, value, int(os.environ["TTL"]))
+        init_cache_set(cache_client, value, int(os.environ["TTL"]), args.set_keys)
     finally:
         cache_client.close()
         logger.info("Redis connection closed after init.")
@@ -107,6 +127,7 @@ def main():
     # loadtest cluster valkey subcommand
     local_valkey_parser = local_subparsers.add_parser("valkey", help="Run Cluster test on Valkey locally")
     add_common_arguments(local_valkey_parser)
+    local_valkey_parser.set_defaults(func=cluster_valkey_load_test)
 
     # init subcommand
     init_parser = subparsers.add_parser("init", help="Initialization commands")

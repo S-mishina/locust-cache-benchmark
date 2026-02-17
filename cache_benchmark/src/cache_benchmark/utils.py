@@ -25,7 +25,7 @@ def generate_string(size_in_kb):
     """
     return "A" * (int(size_in_kb) * 1024)
 
-def init_cache_set(cache_client, value, ttl):
+def init_cache_set(cache_client, value, ttl, set_keys=1000):
     """
     Initializes the Redis cache with a set of keys.
 
@@ -33,11 +33,12 @@ def init_cache_set(cache_client, value, ttl):
         cache_client (RedisCluster): Redis cluster connection object.
         value (str): Value to set in Redis.
         ttl (int): Time-to-live for the keys in seconds.
+        set_keys (int): Number of keys to set in the cache (default: 1000).
     """
     if cache_client is not None:
         logging.info("Redis client initialized successfully.")
-        logging.info("Populating cache with 1,000 keys...")
-        for i in range(1, 1000):
+        logging.info(f"Populating cache with {set_keys} keys...")
+        for i in range(1, set_keys + 1):
             key = f"key_{i}"
             if cache_client.get(key) is None:
                 cache_client.set(key, value, ex=int(ttl))
@@ -87,15 +88,17 @@ def set_env_vars(args):
     os.environ["OTEL_TRACING_ENABLED"] = str(args.otel_tracing_enabled)
     os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = str(args.otel_exporter_endpoint)
     os.environ["OTEL_SERVICE_NAME"] = str(args.otel_service_name)
+    os.environ["QUERY_TIMEOUT"] = str(args.query_timeout)
+    os.environ["SET_KEYS"] = str(args.set_keys)
 def set_env_cache_retry(args):
     """
-    Sets the environment variables for the cache.
+    Sets the environment variables for the cache retry.
 
     Args:
         args (Namespace): Command-line arguments.
     """
-    # os.environ["cache_retry"] = str(args.cache_retry)
-# os.environ["cache_retry_delay"] = str(args.cache_retry_delay)
+    os.environ["RETRY_ATTEMPTS"] = str(args.retry_count)
+    os.environ["RETRY_WAIT"] = str(args.retry_wait)
 
 def locust_runner_cash_benchmark(args,redisuser):
     setup_otel_tracing()

@@ -35,7 +35,8 @@ class RedisTaskSet(TaskSet):
             return
 
         if random.random() < float(hit_rate):
-            key = f"key_{random.randint(1, 1000)}"
+            set_keys = int(os.environ.get("SET_KEYS", 1000))
+            key = f"key_{random.randint(1, set_keys)}"
             result = LocustCache.locust_redis_get(self, self.user.cache_conn, key, "default")
             if result is not None:
                 self.__class__.cache_hits += 1
