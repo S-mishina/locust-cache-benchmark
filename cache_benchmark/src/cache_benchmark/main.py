@@ -6,7 +6,6 @@ from cache_benchmark.args import add_common_arguments
 from cache_benchmark.cash_connect import CacheConnect
 from cache_benchmark.scenario import RedisUser
 from cache_benchmark.otel_setup import setup_otel_tracing, shutdown_otel_tracing
-import locust
 import logging
 
 logger = logging.getLogger(__name__)
@@ -157,7 +156,7 @@ def init_valkey_load_test(args):
     cache = CacheConnect()
     cache_client = cache.valkey_connect()
     if cache_client is None:
-        logger.error("Redis client initialization failed.")
+        logger.error("Valkey client initialization failed.")
         sys.exit(1)
     try:
         value = generate_string(args.value_size)

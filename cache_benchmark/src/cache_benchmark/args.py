@@ -21,7 +21,7 @@ def add_common_arguments(parser):
         "--ssl", "-x",
         type=str,
         required=False,
-        default=False,
+        default="false",
         help="Use SSL for the connection."
     )
     group.add_argument(
