@@ -41,7 +41,6 @@ class LocustCache:
                 stop=stop_after_attempt(int(os.environ.get("RETRY_ATTEMPTS", 3))),
                 wait=wait_fixed(int(os.environ.get("RETRY_WAIT", 5))),
                 retry=retry_if_exception_type(_RETRYABLE_EXCEPTIONS),
-                reraise=True,
             )
             for attempt in retryer:
                 with attempt:
@@ -103,7 +102,6 @@ class LocustCache:
                 stop=stop_after_attempt(int(os.environ.get("RETRY_ATTEMPTS", 3))),
                 wait=wait_fixed(int(os.environ.get("RETRY_WAIT", 5))),
                 retry=retry_if_exception_type(_RETRYABLE_EXCEPTIONS),
-                reraise=True,
             )
             for attempt in retryer:
                 with attempt:
