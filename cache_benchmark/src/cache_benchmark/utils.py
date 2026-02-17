@@ -7,6 +7,7 @@ from locust.runners import LocalRunner , MasterRunner, WorkerRunner
 from locust import constant_throughput
 from locust.stats import stats_printer
 import time
+from cache_benchmark.otel_setup import setup_otel_tracing, shutdown_otel_tracing
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,9 @@ def set_env_vars(args):
     os.environ["CONNECTIONS_POOL"] = str(args.connections_pool)
     os.environ["SSL"] = str(args.ssl)
     os.environ["REQUEST_RATE"] = str(args.request_rate)
+    os.environ["OTEL_TRACING_ENABLED"] = str(args.otel_tracing_enabled)
+    os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = str(args.otel_exporter_endpoint)
+    os.environ["OTEL_SERVICE_NAME"] = str(args.otel_service_name)
 def set_env_cache_retry(args):
     """
     Sets the environment variables for the cache.
@@ -94,6 +98,7 @@ def set_env_cache_retry(args):
 # os.environ["cache_retry_delay"] = str(args.cache_retry_delay)
 
 def locust_runner_cash_benchmark(args,redisuser):
+    setup_otel_tracing()
     redisuser.wait_time = constant_throughput(float(os.environ["REQUEST_RATE"]))
     env = Environment(user_classes=[redisuser])
     env.events.request.add_listener(lambda **kwargs: stats_printer(env.stats))
@@ -107,11 +112,13 @@ def locust_runner_cash_benchmark(args,redisuser):
     runner.quit()
     logging.info("Load test completed.")
     save_results_to_csv(env.stats, filename="redis_test_results.csv")
+    shutdown_otel_tracing()
 
 def locust_master_runner_benchmark(args, redisuser):
     """
     Run Locust in Master mode.
     """
+    setup_otel_tracing()
     redisuser.wait_time = constant_throughput(float(os.environ["REQUEST_RATE"]))
     env = Environment(user_classes=[redisuser])
     env.events.request.add_listener(lambda **kwargs: stats_printer(env.stats))
@@ -129,11 +136,13 @@ def locust_master_runner_benchmark(args, redisuser):
     runner.quit()
     logging.info("Load test completed.")
     save_results_to_csv(env.stats, filename="redis_test_results_master.csv")
+    shutdown_otel_tracing()
 
 def locust_worker_runner_benchmark(args, redisuser):
     """
     Run Locust in Worker mode.
     """
+    setup_otel_tracing()
     redisuser.wait_time = constant_throughput(float(os.environ["REQUEST_RATE"]))
     env = Environment(user_classes=[redisuser])
 
@@ -143,3 +152,4 @@ def locust_worker_runner_benchmark(args, redisuser):
     runner.greenlet.join()
 
     logging.info("Worker load test completed.")
+    shutdown_otel_tracing()

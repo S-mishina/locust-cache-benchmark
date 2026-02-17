@@ -18,6 +18,10 @@ class TestUtils(unittest.TestCase):
         args.ttl = 60
         args.connections_pool = 10
         args.ssl = "False"
+        args.request_rate = 1.0
+        args.otel_tracing_enabled = "false"
+        args.otel_exporter_endpoint = "http://localhost:4317"
+        args.otel_service_name = "locust-cache-benchmark"
 
         set_env_vars(args)
 
@@ -28,6 +32,10 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(os.environ["TTL"], "60")
         self.assertEqual(os.environ["CONNECTIONS_POOL"], "10")
         self.assertEqual(os.environ["SSL"] , "False")
+        self.assertEqual(os.environ["REQUEST_RATE"], "1.0")
+        self.assertEqual(os.environ["OTEL_TRACING_ENABLED"], "false")
+        self.assertEqual(os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"], "http://localhost:4317")
+        self.assertEqual(os.environ["OTEL_SERVICE_NAME"], "locust-cache-benchmark")
 
     def test_init_cache_set(self):
         cache_client = Mock()

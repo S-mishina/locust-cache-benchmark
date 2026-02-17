@@ -4,6 +4,12 @@ import time
 import logging
 import os
 
+def _get_request_type():
+    cache_type = os.environ.get("CACHE_TYPE", "redis_cluster")
+    if cache_type == "valkey_cluster":
+        return "Valkey"
+    return "Redis"
+
 class LocustCache:
     @retry(
         stop=stop_after_attempt(int(os.environ.get("RETRY_ATTEMPTS", 3))),
@@ -13,13 +19,13 @@ class LocustCache:
     def locust_redis_get(self, cache_connection, key, name):
         """
         Performs a GET operation on the Redis cluster with retry logic.
-        
+
         Args:
             self: Locust task instance.
             redis_connection (RedisCluster): Redis cluster connection object.
             key (str): Key to get from Redis.
             name (str): Name for the request event.
-        
+
         Returns:
             str: Value from Redis.
         """
@@ -28,7 +34,7 @@ class LocustCache:
             result = cache_connection.get(key)
             total_time = (time.perf_counter() - start_time) * 1000
             self.user.environment.events.request.fire(
-                request_type="Redis",
+                request_type=_get_request_type(),
                 name="get_value_{}".format(name),
                 response_time=total_time,
                 response_length=0,
@@ -38,7 +44,7 @@ class LocustCache:
         except Exception as e:
             total_time = (time.perf_counter() - start_time) * 1000
             self.user.environment.events.request.fire(
-                request_type="Redis",
+                request_type=_get_request_type(),
                 name="get_value_{}".format(name),
                 response_time=total_time,
                 response_length=0,
@@ -57,7 +63,7 @@ class LocustCache:
     def locust_redis_set(self, cache_connection, key, value, name, ttl):
         """
         Performs a SET operation on the Redis cluster with retry logic.
-        
+
         Args:
             self: Locust task instance.
             redis_connection (RedisCluster): Redis cluster connection object.
@@ -65,7 +71,7 @@ class LocustCache:
             value (str): Value to set in Redis.
             name (str): Name for the request event.
             ttl (int): Time-to-live for the key in seconds.
-        
+
         Returns:
             bool: True if the operation was successful, False otherwise.
         """
@@ -74,7 +80,7 @@ class LocustCache:
             result = cache_connection.set(key, value, ex=int(ttl))
             total_time = (time.perf_counter() - start_time) * 1000
             self.user.environment.events.request.fire(
-                request_type="Redis",
+                request_type=_get_request_type(),
                 name="set_value_{}".format(name),
                 response_time=total_time,
                 response_length=0,
@@ -84,7 +90,7 @@ class LocustCache:
         except Exception as e:
             total_time = (time.perf_counter() - start_time) * 1000
             self.user.environment.events.request.fire(
-                request_type="Redis",
+                request_type=_get_request_type(),
                 name="set_value_{}".format(name),
                 response_time=total_time,
                 response_length=0,

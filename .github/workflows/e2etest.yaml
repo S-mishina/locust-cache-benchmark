@@ -30,7 +30,7 @@ on:
       cache-ssl:
         required: false
         type: boolean
-        default: False
+        default: false
         description: 'True or False'
       loadtest-duration:
         required: false
@@ -80,13 +80,52 @@ jobs:
       - name: Install project
         run: poetry install --only=main
 
+      - name: Start OTel Collector
+        run: |
+          cat <<'EOF' > /tmp/otel-collector-config.yaml
+          receivers:
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:4317
+          exporters:
+            debug:
+              verbosity: detailed
+          service:
+            pipelines:
+              traces:
+                receivers: [otlp]
+                exporters: [debug]
+          EOF
+          sed -i 's/^          //' /tmp/otel-collector-config.yaml
+          docker run -d --name otel-collector \
+            -p 4317:4317 \
+            -v /tmp/otel-collector-config.yaml:/etc/otelcol/config.yaml \
+            otel/opentelemetry-collector:latest
+          sleep 5
+
       - name: Run E2E test for Redis
         if: ${{ inputs.cache-platform == 'redis' }}
         run: |
           docker-compose -f docker-compose-${{ inputs.cache-platform }}.yml up -d && \
           sleep 60 && \
-          poetry run locust_cache_benchmark init ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} --ssl ${{ inputs.cache-ssl }} && \
-          poetry run locust_cache_benchmark loadtest local ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p ${{ inputs.cache-port }} -r ${{ inputs.cache-hit-rate }} -d ${{ inputs.loadtest-duration }} -c 1 -n 1 -k 1 -t 60 --ssl ${{ inputs.cache-ssl }}
+          poetry run locust_cache_benchmark init \
+            ${{ inputs.cache-platform }} \
+            -f ${{ inputs.cache-host }} \
+            -p ${{ inputs.cache-port }} \
+            --ssl ${{ inputs.cache-ssl }} \
+            --otel-tracing-enabled true \
+            --otel-exporter-endpoint http://localhost:4317 && \
+          poetry run locust_cache_benchmark loadtest local \
+            ${{ inputs.cache-platform }} \
+            -f ${{ inputs.cache-host }} \
+            -p ${{ inputs.cache-port }} \
+            -r ${{ inputs.cache-hit-rate }} \
+            -d ${{ inputs.loadtest-duration }} \
+            -c 1 -n 1 -k 1 -t 60 \
+            --ssl ${{ inputs.cache-ssl }} \
+            --otel-tracing-enabled true \
+            --otel-exporter-endpoint http://localhost:4317
 
       - name: Run E2E test for Valkey
         if: ${{ inputs.cache-platform == 'valkey' }}
@@ -97,8 +136,34 @@ jobs:
           echo "Checking cluster status..."
           docker logs valkey-node-0 || true
           docker logs valkey-cluster-init || true
-          poetry run locust_cache_benchmark init ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p 7200 --ssl ${{ inputs.cache-ssl }}
-          poetry run locust_cache_benchmark loadtest local ${{ inputs.cache-platform }} -f ${{ inputs.cache-host }} -p 7200 -r ${{ inputs.cache-hit-rate }} -d ${{ inputs.loadtest-duration }} -c 1 -n 1 -k 1 -t 60 --ssl ${{ inputs.cache-ssl }}
+          poetry run locust_cache_benchmark init \
+            ${{ inputs.cache-platform }} \
+            -f ${{ inputs.cache-host }} \
+            -p 7200 \
+            --ssl ${{ inputs.cache-ssl }} \
+            --otel-tracing-enabled true \
+            --otel-exporter-endpoint http://localhost:4317
+          poetry run locust_cache_benchmark loadtest local \
+            ${{ inputs.cache-platform }} \
+            -f ${{ inputs.cache-host }} \
+            -p 7200 \
+            -r ${{ inputs.cache-hit-rate }} \
+            -d ${{ inputs.loadtest-duration }} \
+            -c 1 -n 1 -k 1 -t 60 \
+            --ssl ${{ inputs.cache-ssl }} \
+            --otel-tracing-enabled true \
+            --otel-exporter-endpoint http://localhost:4317
+
+      - name: Verify OTel spans were exported
+        run: |
+          SPAN_COUNT=$(docker logs otel-collector 2>&1 | grep -c "Span #" || true)
+          echo "Total spans exported: $SPAN_COUNT"
+          if [ "$SPAN_COUNT" -eq 0 ]; then
+            echo "ERROR: No spans were exported to OTel Collector"
+            docker logs otel-collector 2>&1 | tail -50
+            exit 1
+          fi
+          echo "OTel tracing verification passed"
 
       - name: output test result upload
         uses: actions/upload-artifact@v4
