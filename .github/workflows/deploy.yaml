@@ -31,6 +31,30 @@ jobs:
       attestations: write
       id-token: write
 
+  e2etest-redis-standalone:
+    uses: ./.github/workflows/e2etest.yaml
+    with:
+      cache-platform: 'redis'
+      cache-mode: 'standalone'
+      cache-port: 6379
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+
+  e2etest-valkey-standalone:
+    uses: ./.github/workflows/e2etest.yaml
+    with:
+      cache-platform: 'valkey'
+      cache-mode: 'standalone'
+      cache-port: 6379
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+
   unittest:
     runs-on: ubuntu-24.04
     permissions:

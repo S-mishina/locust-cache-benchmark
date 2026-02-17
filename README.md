@@ -47,7 +47,9 @@ deployments.
 ## Supported Environments
 
 - [Redis](https://redis.io/) Cluster
+- [Redis](https://redis.io/) Standalone
 - [Valkey](https://valkey.io/) Cluster
+- [Valkey](https://valkey.io/) Standalone
 
 The above cache service is supported.
 
@@ -135,14 +137,20 @@ docker pull ghcr.io/s-mishina/locust-redis-benchmark:latest
 
 This tool provides the following subcommands:
 
-| Command                   | Description                                           |
-| ------------------------- | ----------------------------------------------------- |
-| `init redis`              | Initialize Redis cluster with test keys               |
-| `init valkey`             | Initialize Valkey cluster with test keys              |
-| `loadtest local redis`    | Run a local load test on Redis                        |
-| `loadtest local valkey`   | Run a local load test on Valkey                       |
-| `loadtest cluster redis`  | Run a distributed (master/worker) load test on Redis  |
-| `loadtest cluster valkey` | Run a distributed (master/worker) load test on Valkey |
+| Command                              | Description                                                      |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| `init redis`                         | Initialize Redis cluster with test keys                          |
+| `init valkey`                        | Initialize Valkey cluster with test keys                         |
+| `init redis-standalone`              | Initialize standalone Redis with test keys                       |
+| `init valkey-standalone`             | Initialize standalone Valkey with test keys                      |
+| `loadtest local redis`               | Run a local load test on Redis cluster                           |
+| `loadtest local valkey`              | Run a local load test on Valkey cluster                          |
+| `loadtest local redis-standalone`    | Run a local load test on standalone Redis                        |
+| `loadtest local valkey-standalone`   | Run a local load test on standalone Valkey                       |
+| `loadtest cluster redis`             | Run a distributed (master/worker) load test on Redis cluster     |
+| `loadtest cluster valkey`            | Run a distributed (master/worker) load test on Valkey cluster    |
+| `loadtest cluster redis-standalone`  | Run a distributed (master/worker) load test on standalone Redis  |
+| `loadtest cluster valkey-standalone` | Run a distributed (master/worker) load test on standalone Valkey |
 
 ### Local Machine
 
@@ -157,6 +165,42 @@ To execute a local load test on a Redis cluster:
 
 ```sh
 locust_cache_benchmark loadtest local redis \
+  -f <hostname> -p <port> \
+  -r <hit_rate> -d <duration> \
+  -c <connections> -n <spawn_rate> \
+  -k <value_size> -t <ttl> \
+  -rr <request_rate>
+```
+
+To initialize a standalone Redis:
+
+```sh
+locust_cache_benchmark init redis-standalone \
+  -f <hostname> -p <port>
+```
+
+To initialize a standalone Valkey:
+
+```sh
+locust_cache_benchmark init valkey-standalone \
+  -f <hostname> -p <port>
+```
+
+To execute a local load test on a standalone Redis:
+
+```sh
+locust_cache_benchmark loadtest local redis-standalone \
+  -f <hostname> -p <port> \
+  -r <hit_rate> -d <duration> \
+  -c <connections> -n <spawn_rate> \
+  -k <value_size> -t <ttl> \
+  -rr <request_rate>
+```
+
+To execute a local load test on a standalone Valkey:
+
+```sh
+locust_cache_benchmark loadtest local valkey-standalone \
   -f <hostname> -p <port> \
   -r <hit_rate> -d <duration> \
   -c <connections> -n <spawn_rate> \
@@ -189,6 +233,31 @@ locust_cache_benchmark loadtest cluster redis \
   --master-bind-port 5557
 ```
 
+To execute a distributed load test on standalone Redis (master):
+
+```sh
+locust_cache_benchmark loadtest cluster redis-standalone \
+  -f <hostname> -p <port> \
+  -r <hit_rate> -d <duration> \
+  -c <connections> -n <spawn_rate> \
+  -k <value_size> -t <ttl> \
+  -rr <request_rate> \
+  --cluster-mode master \
+  --master-bind-host 0.0.0.0 \
+  --master-bind-port 5557 \
+  --num-workers 3
+```
+
+To execute a distributed load test on standalone Redis (worker):
+
+```sh
+locust_cache_benchmark loadtest cluster redis-standalone \
+  -f <hostname> -p <port> \
+  --cluster-mode worker \
+  --master-bind-host <master_host> \
+  --master-bind-port 5557
+```
+
 ### Container Usage
 
 To initialize a Redis cluster:
@@ -206,6 +275,28 @@ To execute a load test on a Redis cluster:
 docker run --rm -it \
   ghcr.io/s-mishina/locust-redis-benchmark:latest \
   locust_cache_benchmark loadtest local redis \
+  -f <hostname> -p <port> \
+  -r <hit_rate> -d <duration> \
+  -c <connections> -n <spawn_rate> \
+  -k <value_size> -t <ttl> \
+  -rr <request_rate>
+```
+
+To initialize a standalone Redis via container:
+
+```sh
+docker run --rm -it \
+  ghcr.io/s-mishina/locust-redis-benchmark:latest \
+  locust_cache_benchmark init redis-standalone \
+  -f <hostname> -p <port>
+```
+
+To execute a load test on a standalone Redis via container:
+
+```sh
+docker run --rm -it \
+  ghcr.io/s-mishina/locust-redis-benchmark:latest \
+  locust_cache_benchmark loadtest local redis-standalone \
   -f <hostname> -p <port> \
   -r <hit_rate> -d <duration> \
   -c <connections> -n <spawn_rate> \

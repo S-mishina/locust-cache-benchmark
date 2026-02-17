@@ -37,6 +37,11 @@ on:
         type: number
         default: 30
         description: 'duration of the load test'
+      cache-mode:
+        required: false
+        type: string
+        default: 'cluster'
+        description: 'cluster or standalone'
 
 jobs:
   e2etest-cache:
@@ -104,8 +109,8 @@ jobs:
             otel/opentelemetry-collector:latest
           sleep 5
 
-      - name: Run E2E test for Redis
-        if: ${{ inputs.cache-platform == 'redis' }}
+      - name: Run E2E test for Redis (cluster)
+        if: ${{ inputs.cache-platform == 'redis' && inputs.cache-mode == 'cluster' }}
         run: |
           docker-compose -f docker-compose-${{ inputs.cache-platform }}.yml up -d && \
           sleep 60 && \
@@ -127,8 +132,8 @@ jobs:
             --otel-tracing-enabled true \
             --otel-exporter-endpoint http://localhost:4317
 
-      - name: Run E2E test for Valkey
-        if: ${{ inputs.cache-platform == 'valkey' }}
+      - name: Run E2E test for Valkey (cluster)
+        if: ${{ inputs.cache-platform == 'valkey' && inputs.cache-mode == 'cluster' }}
         run: |
           docker-compose -f docker-compose-${{ inputs.cache-platform }}.yml up -d
           echo "Waiting for Valkey cluster initialization..."
@@ -154,6 +159,52 @@ jobs:
             --otel-tracing-enabled true \
             --otel-exporter-endpoint http://localhost:4317
 
+      - name: Run E2E test for Redis (standalone)
+        if: ${{ inputs.cache-platform == 'redis' && inputs.cache-mode == 'standalone' }}
+        run: |
+          docker-compose -f docker-compose-redis-standalone.yml up -d && \
+          sleep 10 && \
+          poetry run locust_cache_benchmark init \
+            redis-standalone \
+            -f ${{ inputs.cache-host }} \
+            -p ${{ inputs.cache-port }} \
+            --ssl ${{ inputs.cache-ssl }} \
+            --otel-tracing-enabled true \
+            --otel-exporter-endpoint http://localhost:4317 && \
+          poetry run locust_cache_benchmark loadtest local \
+            redis-standalone \
+            -f ${{ inputs.cache-host }} \
+            -p ${{ inputs.cache-port }} \
+            -r ${{ inputs.cache-hit-rate }} \
+            -d ${{ inputs.loadtest-duration }} \
+            -c 1 -n 1 -k 1 -t 60 \
+            --ssl ${{ inputs.cache-ssl }} \
+            --otel-tracing-enabled true \
+            --otel-exporter-endpoint http://localhost:4317
+
+      - name: Run E2E test for Valkey (standalone)
+        if: ${{ inputs.cache-platform == 'valkey' && inputs.cache-mode == 'standalone' }}
+        run: |
+          docker-compose -f docker-compose-valkey-standalone.yml up -d && \
+          sleep 10 && \
+          poetry run locust_cache_benchmark init \
+            valkey-standalone \
+            -f ${{ inputs.cache-host }} \
+            -p ${{ inputs.cache-port }} \
+            --ssl ${{ inputs.cache-ssl }} \
+            --otel-tracing-enabled true \
+            --otel-exporter-endpoint http://localhost:4317 && \
+          poetry run locust_cache_benchmark loadtest local \
+            valkey-standalone \
+            -f ${{ inputs.cache-host }} \
+            -p ${{ inputs.cache-port }} \
+            -r ${{ inputs.cache-hit-rate }} \
+            -d ${{ inputs.loadtest-duration }} \
+            -c 1 -n 1 -k 1 -t 60 \
+            --ssl ${{ inputs.cache-ssl }} \
+            --otel-tracing-enabled true \
+            --otel-exporter-endpoint http://localhost:4317
+
       - name: Verify OTel spans were exported
         run: |
           SPAN_COUNT=$(docker logs otel-collector 2>&1 | grep -c "Span #" || true)
@@ -168,5 +219,5 @@ jobs:
       - name: output test result upload
         uses: actions/upload-artifact@v4
         with:
-          name: e2etest-${{ inputs.cache-platform }}
+          name: e2etest-${{ inputs.cache-platform }}-${{ inputs.cache-mode }}
           path: redis_test_results.csv

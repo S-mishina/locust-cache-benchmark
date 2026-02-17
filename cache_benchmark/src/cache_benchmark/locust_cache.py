@@ -11,13 +11,13 @@ _RETRYABLE_EXCEPTIONS = (TimeoutError, ConnectionError, ClusterDownError)
 
 def _get_request_type():
     cache_type = os.environ.get("CACHE_TYPE", "redis_cluster")
-    if cache_type == "valkey_cluster":
+    if cache_type in ("valkey_cluster", "valkey"):
         return "Valkey"
     return "Redis"
 
 def _get_db_system():
     cache_type = os.environ.get("CACHE_TYPE", "redis_cluster")
-    if cache_type == "valkey_cluster":
+    if cache_type in ("valkey_cluster", "valkey"):
         return "valkey"
     return "redis"
 
