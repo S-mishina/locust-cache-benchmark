@@ -41,6 +41,8 @@ deployments.
 - Displays test results in real-time
 - Supports distributed load testing with
   Locust master/worker mode
+- Supports [OpenTelemetry](https://opentelemetry.io/)
+  tracing for Redis operations via auto-instrumentation
 
 ## Supported Environments
 
@@ -238,6 +240,14 @@ A sample Kubernetes Job manifest is available at
 | `--retry-wait`       | `-rw` | int   | `2`         | Wait time between retries in seconds                        |
 | `--set-keys`         | `-s`  | int   | `1000`      | Number of keys to set (init only)                           |
 
+### OpenTelemetry Parameters
+
+| Parameter                  | Type | Default                  | Description                  |
+| -------------------------- | ---- | ------------------------ | ---------------------------- |
+| `--otel-tracing-enabled`   | str  | `false`                  | Enable OpenTelemetry tracing |
+| `--otel-exporter-endpoint` | str  | `http://localhost:4317`  | OTLP gRPC exporter endpoint  |
+| `--otel-service-name`      | str  | `locust-cache-benchmark` | OpenTelemetry service name   |
+
 ### Distributed Mode Parameters
 
 | Parameter            | Short  | Type | Default     | Description                     |
@@ -256,10 +266,39 @@ you can enable redis integration to speed up the
 data acquisition time by running the redis command
 to acquire the data.
 
-### Trace support
+### OpenTelemetry tracing
 
-This tool will be otel compatible; once otel is
-supported, you will be able to use otel to check
-trace.
+This tool supports
+[OpenTelemetry](https://opentelemetry.io/) tracing
+for Redis operations. When enabled, every Redis
+command (GET, SET, etc.) automatically generates
+a span via `opentelemetry-instrumentation-redis`.
+
+To enable tracing, pass `--otel-tracing-enabled true`
+along with the exporter endpoint:
+
+```sh
+locust_cache_benchmark loadtest local redis \
+  -f <hostname> -p <port> \
+  -r <hit_rate> -d <duration> \
+  -c <connections> -n <spawn_rate> \
+  -k <value_size> -t <ttl> \
+  -rr <request_rate> \
+  --otel-tracing-enabled true \
+  --otel-exporter-endpoint http://localhost:4317 \
+  --otel-service-name my-benchmark
+```
+
+Spans are exported via OTLP gRPC to an
+[OpenTelemetry Collector](https://opentelemetry.io/docs/collector/),
+which can then forward them to backends such as
+Jaeger, Tempo, or convert them to metrics via
+the `spanmetrics` connector for Prometheus.
+
+> **Note:** For Redis, both auto-instrumentation
+> (`RedisInstrumentor`) and manual spans are active.
+> For Valkey, manual spans are used since
+> `RedisInstrumentor` does not instrument the
+> valkey-py client.
 
 [redis-bench]: https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/

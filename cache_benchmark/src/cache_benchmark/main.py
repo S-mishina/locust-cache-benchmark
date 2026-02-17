@@ -5,6 +5,7 @@ from cache_benchmark.utils import set_env_vars, set_env_cache_retry, generate_st
 from cache_benchmark.args import add_common_arguments
 from cache_benchmark.cash_connect import CacheConnect
 from cache_benchmark.scenario import RedisUser
+from cache_benchmark.otel_setup import setup_otel_tracing, shutdown_otel_tracing
 import locust
 import logging
 
@@ -46,6 +47,7 @@ def cluster_redis_load_test(args):
 def init_valkey_load_test(args):
     set_env_vars(args)
     set_env_cache_retry(args)
+    setup_otel_tracing()
     cache = CacheConnect()
     cache_client = cache.valkey_connect()
     if cache_client is None:
@@ -57,10 +59,12 @@ def init_valkey_load_test(args):
     finally:
         cache_client.close()
         logger.info("Valkey connection closed after init.")
+        shutdown_otel_tracing()
 
 def init_redis_load_test(args):
     set_env_vars(args)
     set_env_cache_retry(args)
+    setup_otel_tracing()
     cache = CacheConnect()
     cache_client = cache.redis_connect()
     if cache_client is None:
@@ -72,6 +76,7 @@ def init_redis_load_test(args):
     finally:
         cache_client.close()
         logger.info("Redis connection closed after init.")
+        shutdown_otel_tracing()
 
 def main():
     parser = argparse.ArgumentParser(

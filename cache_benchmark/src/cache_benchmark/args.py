@@ -136,3 +136,24 @@ def add_common_arguments(parser):
         default=1.0,
         help="Specify the request rate per user per second (default: 1.0). Uses constant_throughput for precise rate control."
     )
+    group.add_argument(
+        "--otel-tracing-enabled",
+        type=str,
+        required=False,
+        default="false",
+        help="Enable OpenTelemetry tracing (default: false)."
+    )
+    group.add_argument(
+        "--otel-exporter-endpoint",
+        type=str,
+        required=False,
+        default="http://localhost:4317",
+        help="Specify the OTLP exporter endpoint (default: http://localhost:4317)."
+    )
+    group.add_argument(
+        "--otel-service-name",
+        type=str,
+        required=False,
+        default="locust-cache-benchmark",
+        help="Specify the OpenTelemetry service name (default: locust-cache-benchmark)."
+    )
