@@ -295,8 +295,10 @@ which can then forward them to backends such as
 Jaeger, Tempo, or convert them to metrics via
 the `spanmetrics` connector for Prometheus.
 
-> **Note:** Auto-instrumentation applies to the
-> redis-py client only. The Valkey client is not
-> instrumented by `RedisInstrumentor`.
+> **Note:** For Redis, both auto-instrumentation
+> (`RedisInstrumentor`) and manual spans are active.
+> For Valkey, manual spans are used since
+> `RedisInstrumentor` does not instrument the
+> valkey-py client.
 
 [redis-bench]: https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/
