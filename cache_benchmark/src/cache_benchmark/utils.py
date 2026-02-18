@@ -1,9 +1,8 @@
 import csv
-import os
 import logging
 import gevent
 from locust.env import Environment
-from locust.runners import LocalRunner , MasterRunner, WorkerRunner
+from locust.runners import LocalRunner, MasterRunner, WorkerRunner
 from locust import constant_throughput
 from locust.stats import stats_printer
 import time
@@ -70,88 +69,58 @@ def save_results_to_csv(stats, filename="test_results.csv"):
                 entry.current_rps
             ])
 
-def set_env_vars(args):
-    """
-    Sets the environment variables for the test.
-
-    Args:
-        args (Namespace): Command-line arguments.
-    """
-    os.environ["REDIS_HOST"] = args.fqdn
-    os.environ["REDIS_PORT"] = str(args.port)
-    os.environ["HIT_RATE"] = str(args.hit_rate)
-    os.environ["VALUE_SIZE"] = str(args.value_size)
-    os.environ["TTL"] = str(args.ttl)
-    os.environ["CONNECTIONS_POOL"] = str(args.connections_pool)
-    os.environ["SSL"] = str(args.ssl)
-    os.environ["REQUEST_RATE"] = str(args.request_rate)
-    os.environ["OTEL_TRACING_ENABLED"] = str(args.otel_tracing_enabled)
-    os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = str(args.otel_exporter_endpoint)
-    os.environ["OTEL_SERVICE_NAME"] = str(args.otel_service_name)
-    os.environ["QUERY_TIMEOUT"] = str(args.query_timeout)
-    os.environ["SET_KEYS"] = str(args.set_keys)
-def set_env_cache_retry(args):
-    """
-    Sets the environment variables for the cache retry.
-
-    Args:
-        args (Namespace): Command-line arguments.
-    """
-    os.environ["RETRY_ATTEMPTS"] = str(args.retry_count)
-    os.environ["RETRY_WAIT"] = str(args.retry_wait)
-
-def locust_runner_cash_benchmark(args,redisuser):
+def locust_runner_cash_benchmark(config, redisuser):
     setup_otel_tracing()
-    redisuser.wait_time = constant_throughput(float(os.environ["REQUEST_RATE"]))
+    redisuser.wait_time = constant_throughput(config.request_rate)
     env = Environment(user_classes=[redisuser])
     env.events.request.add_listener(lambda **kwargs: stats_printer(env.stats))
     runner = LocalRunner(env)
-    redisuser.host = f"http://{args.fqdn}:{args.port}"
+    redisuser.host = f"http://{config.cache_host}:{config.cache_port}"
     gevent.spawn(stats_printer(env.stats))
-    runner.start(user_count=args.connections, spawn_rate=args.spawn_rate)
+    runner.start(user_count=config.connections, spawn_rate=config.spawn_rate)
     stats_printer(env.stats)
     logging.info("Starting Locust load test...")
-    gevent.sleep(args.duration)
+    gevent.sleep(config.duration)
     runner.quit()
     logging.info("Load test completed.")
     save_results_to_csv(env.stats, filename="redis_test_results.csv")
     shutdown_otel_tracing()
 
-def locust_master_runner_benchmark(args, redisuser):
+def locust_master_runner_benchmark(config, redisuser):
     """
     Run Locust in Master mode.
     """
     setup_otel_tracing()
-    redisuser.wait_time = constant_throughput(float(os.environ["REQUEST_RATE"]))
+    redisuser.wait_time = constant_throughput(config.request_rate)
     env = Environment(user_classes=[redisuser])
     env.events.request.add_listener(lambda **kwargs: stats_printer(env.stats))
-    runner = MasterRunner(env, master_bind_host=args.master_bind_host, master_bind_port=args.master_bind_port)
+    runner = MasterRunner(env, master_bind_host=config.master_bind_host, master_bind_port=config.master_bind_port)
     logging.info("Master is waiting for workers to connect...")
-    while len(runner.clients) < args.num_workers:
-        logging.info(f"Waiting for workers... ({len(runner.clients)}/{args.num_workers} connected)")
+    while len(runner.clients) < config.num_workers:
+        logging.info(f"Waiting for workers... ({len(runner.clients)}/{config.num_workers} connected)")
         time.sleep(1)
     gevent.spawn(stats_printer(env.stats))
-    logging.info(f"All {args.num_workers} workers are connected. Starting the load test...")
-    runner.start(user_count=args.connections, spawn_rate=args.spawn_rate)
+    logging.info(f"All {config.num_workers} workers are connected. Starting the load test...")
+    runner.start(user_count=config.connections, spawn_rate=config.spawn_rate)
     stats_printer(env.stats)
     logging.info("Starting Locust load test in Master mode...")
-    gevent.sleep(args.duration)
+    gevent.sleep(config.duration)
     runner.quit()
     logging.info("Load test completed.")
     save_results_to_csv(env.stats, filename="redis_test_results_master.csv")
     shutdown_otel_tracing()
 
-def locust_worker_runner_benchmark(args, redisuser):
+def locust_worker_runner_benchmark(config, redisuser):
     """
     Run Locust in Worker mode.
     """
     setup_otel_tracing()
-    redisuser.wait_time = constant_throughput(float(os.environ["REQUEST_RATE"]))
+    redisuser.wait_time = constant_throughput(config.request_rate)
     env = Environment(user_classes=[redisuser])
 
-    runner = WorkerRunner(env, master_host=args.master_bind_host, master_port=args.master_bind_port)
+    runner = WorkerRunner(env, master_host=config.master_bind_host, master_port=config.master_bind_port)
 
-    logging.info(f"Worker connecting to Master at {args.master_bind_host}:{args.master_bind_port}...")
+    logging.info(f"Worker connecting to Master at {config.master_bind_host}:{config.master_bind_port}...")
     runner.greenlet.join()
 
     logging.info("Worker load test completed.")

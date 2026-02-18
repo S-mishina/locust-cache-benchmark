@@ -1,5 +1,5 @@
-import os
 import logging
+from cache_benchmark.config import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ def setup_otel_tracing():
     """
     Initialize OpenTelemetry tracing with RedisInstrumentor.
 
-    Reads OTEL_TRACING_ENABLED environment variable to determine
+    Reads otel_tracing_enabled from AppConfig to determine
     whether to enable tracing. When enabled, configures a
     TracerProvider with BatchSpanProcessor and OTLPSpanExporter,
     then instruments redis-py via RedisInstrumentor.
@@ -24,8 +24,8 @@ def setup_otel_tracing():
         logger.debug("OpenTelemetry tracing already initialized, skipping.")
         return True
 
-    enabled = os.environ.get("OTEL_TRACING_ENABLED", "false").lower()
-    if enabled != "true":
+    cfg = get_config()
+    if not cfg.otel_tracing_enabled:
         logger.debug("OpenTelemetry tracing is disabled.")
         return False
 
@@ -37,8 +37,8 @@ def setup_otel_tracing():
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.instrumentation.redis import RedisInstrumentor
 
-        service_name = os.environ.get("OTEL_SERVICE_NAME", "locust-cache-benchmark")
-        endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+        service_name = cfg.otel_service_name
+        endpoint = cfg.otel_exporter_endpoint
 
         resource = Resource.create({"service.name": service_name})
         provider = TracerProvider(resource=resource)

@@ -1,23 +1,23 @@
 from tenacity import Retrying, retry_if_exception_type, stop_after_attempt, wait_fixed, RetryError
 from redis.exceptions import ClusterDownError
 from opentelemetry import trace
+from cache_benchmark.config import get_config
 import time
 import logging
-import os
 
 _tracer = trace.get_tracer("locust-cache-benchmark")
 
 _RETRYABLE_EXCEPTIONS = (TimeoutError, ConnectionError, ClusterDownError)
 
 def _get_request_type():
-    cache_type = os.environ.get("CACHE_TYPE", "redis_cluster")
-    if cache_type in ("valkey_cluster", "valkey"):
+    cfg = get_config()
+    if cfg.cache_type in ("valkey_cluster", "valkey"):
         return "Valkey"
     return "Redis"
 
 def _get_db_system():
-    cache_type = os.environ.get("CACHE_TYPE", "redis_cluster")
-    if cache_type in ("valkey_cluster", "valkey"):
+    cfg = get_config()
+    if cfg.cache_type in ("valkey_cluster", "valkey"):
         return "valkey"
     return "redis"
 
@@ -35,11 +35,12 @@ class LocustCache:
         Returns:
             str: Value from Redis.
         """
+        cfg = get_config()
         result = None
         try:
             retryer = Retrying(
-                stop=stop_after_attempt(int(os.environ.get("RETRY_ATTEMPTS", 3))),
-                wait=wait_fixed(int(os.environ.get("RETRY_WAIT", 5))),
+                stop=stop_after_attempt(cfg.retry_attempts),
+                wait=wait_fixed(cfg.retry_wait),
                 retry=retry_if_exception_type(_RETRYABLE_EXCEPTIONS),
             )
             for attempt in retryer:
@@ -96,11 +97,12 @@ class LocustCache:
         Returns:
             bool: True if the operation was successful, False otherwise.
         """
+        cfg = get_config()
         result = None
         try:
             retryer = Retrying(
-                stop=stop_after_attempt(int(os.environ.get("RETRY_ATTEMPTS", 3))),
-                wait=wait_fixed(int(os.environ.get("RETRY_WAIT", 5))),
+                stop=stop_after_attempt(cfg.retry_attempts),
+                wait=wait_fixed(cfg.retry_wait),
                 retry=retry_if_exception_type(_RETRYABLE_EXCEPTIONS),
             )
             for attempt in retryer:

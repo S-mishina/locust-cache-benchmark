@@ -1,7 +1,7 @@
-import os
-from unittest.mock import patch, Mock
 import unittest
+from unittest.mock import patch, Mock
 from cache_benchmark.cash_connect import CacheConnect
+from cache_benchmark.config import AppConfig, set_config, reset_config
 from redis.exceptions import TimeoutError, ConnectionError
 from redis.cluster import ClusterDownError
 from valkey.cluster import ClusterDownError as ValkeyClusterDownError
@@ -9,17 +9,19 @@ from valkey.exceptions import ConnectionError as ValkeyConnectionError, TimeoutE
 
 class TestCashConnect(unittest.TestCase):
     def setUp(self):
-        os.environ.clear()
-        os.environ["REDIS_HOST"] = "localhost"
-        os.environ["REDIS_PORT"] = "6379"
-        os.environ["CONNECTIONS_POOL"] = "10"
-        os.environ["SSL"] = "false"
+        set_config(AppConfig(
+            cache_host="localhost",
+            cache_port=6379,
+            connections_pool=10,
+            ssl=False,
+        ))
 
     def tearDown(self):
-        os.environ.clear()
+        reset_config()
 
     def test_redis_connect_missing_env_vars(self):
-        self.tearDown()
+        reset_config()
+        set_config(AppConfig(cache_host=""))
         conn = CacheConnect.redis_connect(self)
         self.assertIsNone(conn)
 
@@ -44,7 +46,8 @@ class TestCashConnect(unittest.TestCase):
             self.assertIsNone(conn)
 
     def test_valkey_connect_missing_env_vars(self):
-        self.tearDown()
+        reset_config()
+        set_config(AppConfig(cache_host=""))
         conn = CacheConnect.valkey_connect(self)
         self.assertIsNone(conn)
 
@@ -77,7 +80,8 @@ class TestCashConnect(unittest.TestCase):
             mock_conn.ping.assert_called_once()
 
     def test_redis_standalone_connect_missing_env_vars(self):
-        self.tearDown()
+        reset_config()
+        set_config(AppConfig(cache_host=""))
         conn = CacheConnect.redis_standalone_connect(self)
         self.assertIsNone(conn)
 
@@ -106,7 +110,8 @@ class TestCashConnect(unittest.TestCase):
             mock_conn.ping.assert_called_once()
 
     def test_valkey_standalone_connect_missing_env_vars(self):
-        self.tearDown()
+        reset_config()
+        set_config(AppConfig(cache_host=""))
         conn = CacheConnect.valkey_standalone_connect(self)
         self.assertIsNone(conn)
 
