@@ -1,17 +1,18 @@
-import os
 import unittest
 from unittest.mock import patch, MagicMock
 import cache_benchmark.otel_setup as otel_setup
+from cache_benchmark.config import AppConfig, set_config, reset_config
 
 
 class TestOtelSetup(unittest.TestCase):
     def setUp(self):
         otel_setup._otel_initialized = False
+        reset_config()
+        set_config(AppConfig())
 
     def tearDown(self):
         otel_setup._otel_initialized = False
-        for key in ("OTEL_TRACING_ENABLED", "OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_SERVICE_NAME"):
-            os.environ.pop(key, None)
+        reset_config()
 
     def test_setup_disabled_by_default(self):
         result = otel_setup.setup_otel_tracing()
@@ -19,15 +20,19 @@ class TestOtelSetup(unittest.TestCase):
         self.assertFalse(otel_setup._otel_initialized)
 
     def test_setup_disabled_explicitly(self):
-        os.environ["OTEL_TRACING_ENABLED"] = "false"
+        reset_config()
+        set_config(AppConfig(otel_tracing_enabled=False))
         result = otel_setup.setup_otel_tracing()
         self.assertFalse(result)
         self.assertFalse(otel_setup._otel_initialized)
 
     def test_setup_enabled(self):
-        os.environ["OTEL_TRACING_ENABLED"] = "true"
-        os.environ["OTEL_SERVICE_NAME"] = "test-service"
-        os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4317"
+        reset_config()
+        set_config(AppConfig(
+            otel_tracing_enabled=True,
+            otel_service_name="test-service",
+            otel_exporter_endpoint="http://localhost:4317",
+        ))
 
         mock_provider = MagicMock()
         mock_exporter = MagicMock()
@@ -56,7 +61,8 @@ class TestOtelSetup(unittest.TestCase):
 
     @patch("opentelemetry.trace.set_tracer_provider", side_effect=Exception("init error"))
     def test_setup_exception_returns_false(self, _mock):
-        os.environ["OTEL_TRACING_ENABLED"] = "true"
+        reset_config()
+        set_config(AppConfig(otel_tracing_enabled=True))
         result = otel_setup.setup_otel_tracing()
         self.assertFalse(result)
         self.assertFalse(otel_setup._otel_initialized)

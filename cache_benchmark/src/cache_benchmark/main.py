@@ -1,7 +1,7 @@
 import argparse
-import os
 import sys
-from cache_benchmark.utils import set_env_vars, set_env_cache_retry, generate_string, init_cache_set, locust_runner_cash_benchmark, locust_master_runner_benchmark, locust_worker_runner_benchmark
+from cache_benchmark.config import AppConfig, set_config, get_config
+from cache_benchmark.utils import generate_string, init_cache_set, locust_runner_cash_benchmark, locust_master_runner_benchmark, locust_worker_runner_benchmark
 from cache_benchmark.args import add_common_arguments
 from cache_benchmark.cash_connect import CacheConnect
 from cache_benchmark.scenario import RedisUser
@@ -11,17 +11,18 @@ import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
+def _init_config(args, cache_type):
+    config = AppConfig.from_args(args, cache_type=cache_type)
+    set_config(config)
+    return config
+
 def redis_load_test(args):
-    set_env_vars(args)
-    set_env_cache_retry(args)
-    os.environ["CACHE_TYPE"] = "redis_cluster"
-    locust_runner_cash_benchmark(args,RedisUser)
+    config = _init_config(args, "redis_cluster")
+    locust_runner_cash_benchmark(config, RedisUser)
 
 def valkey_load_test(args):
-    set_env_vars(args)
-    set_env_cache_retry(args)
-    os.environ["CACHE_TYPE"] = "valkey_cluster"
-    locust_runner_cash_benchmark(args,RedisUser)
+    config = _init_config(args, "valkey_cluster")
+    locust_runner_cash_benchmark(config, RedisUser)
 
 def cluster_redis_load_test(args):
     if args.cluster_mode is None:
@@ -29,15 +30,11 @@ def cluster_redis_load_test(args):
         logger.error("Please provide the --cluster-mode. master or worker")
         sys.exit(1)
     if args.cluster_mode == "master":
-        set_env_vars(args)
-        set_env_cache_retry(args)
-        os.environ["CACHE_TYPE"] = "redis_cluster"
-        locust_master_runner_benchmark(args,RedisUser)
+        config = _init_config(args, "redis_cluster")
+        locust_master_runner_benchmark(config, RedisUser)
     elif args.cluster_mode == "worker":
-        set_env_vars(args)
-        set_env_cache_retry(args)
-        os.environ["CACHE_TYPE"] = "redis_cluster"
-        locust_worker_runner_benchmark(args,RedisUser)
+        config = _init_config(args, "redis_cluster")
+        locust_worker_runner_benchmark(config, RedisUser)
     else:
         logger.error("Invalid cluster mode provided.")
         logger.error("Please provide the --cluster-mode. master or worker")
@@ -49,31 +46,23 @@ def cluster_valkey_load_test(args):
         logger.error("Please provide the --cluster-mode. master or worker")
         sys.exit(1)
     if args.cluster_mode == "master":
-        set_env_vars(args)
-        set_env_cache_retry(args)
-        os.environ["CACHE_TYPE"] = "valkey_cluster"
-        locust_master_runner_benchmark(args,RedisUser)
+        config = _init_config(args, "valkey_cluster")
+        locust_master_runner_benchmark(config, RedisUser)
     elif args.cluster_mode == "worker":
-        set_env_vars(args)
-        set_env_cache_retry(args)
-        os.environ["CACHE_TYPE"] = "valkey_cluster"
-        locust_worker_runner_benchmark(args,RedisUser)
+        config = _init_config(args, "valkey_cluster")
+        locust_worker_runner_benchmark(config, RedisUser)
     else:
         logger.error("Invalid cluster mode provided.")
         logger.error("Please provide the --cluster-mode. master or worker")
         sys.exit(1)
 
 def redis_standalone_load_test(args):
-    set_env_vars(args)
-    set_env_cache_retry(args)
-    os.environ["CACHE_TYPE"] = "redis"
-    locust_runner_cash_benchmark(args,RedisUser)
+    config = _init_config(args, "redis")
+    locust_runner_cash_benchmark(config, RedisUser)
 
 def valkey_standalone_load_test(args):
-    set_env_vars(args)
-    set_env_cache_retry(args)
-    os.environ["CACHE_TYPE"] = "valkey"
-    locust_runner_cash_benchmark(args,RedisUser)
+    config = _init_config(args, "valkey")
+    locust_runner_cash_benchmark(config, RedisUser)
 
 def cluster_redis_standalone_load_test(args):
     if args.cluster_mode is None:
@@ -81,15 +70,11 @@ def cluster_redis_standalone_load_test(args):
         logger.error("Please provide the --cluster-mode. master or worker")
         sys.exit(1)
     if args.cluster_mode == "master":
-        set_env_vars(args)
-        set_env_cache_retry(args)
-        os.environ["CACHE_TYPE"] = "redis"
-        locust_master_runner_benchmark(args,RedisUser)
+        config = _init_config(args, "redis")
+        locust_master_runner_benchmark(config, RedisUser)
     elif args.cluster_mode == "worker":
-        set_env_vars(args)
-        set_env_cache_retry(args)
-        os.environ["CACHE_TYPE"] = "redis"
-        locust_worker_runner_benchmark(args,RedisUser)
+        config = _init_config(args, "redis")
+        locust_worker_runner_benchmark(config, RedisUser)
     else:
         logger.error("Invalid cluster mode provided.")
         logger.error("Please provide the --cluster-mode. master or worker")
@@ -101,23 +86,18 @@ def cluster_valkey_standalone_load_test(args):
         logger.error("Please provide the --cluster-mode. master or worker")
         sys.exit(1)
     if args.cluster_mode == "master":
-        set_env_vars(args)
-        set_env_cache_retry(args)
-        os.environ["CACHE_TYPE"] = "valkey"
-        locust_master_runner_benchmark(args,RedisUser)
+        config = _init_config(args, "valkey")
+        locust_master_runner_benchmark(config, RedisUser)
     elif args.cluster_mode == "worker":
-        set_env_vars(args)
-        set_env_cache_retry(args)
-        os.environ["CACHE_TYPE"] = "valkey"
-        locust_worker_runner_benchmark(args,RedisUser)
+        config = _init_config(args, "valkey")
+        locust_worker_runner_benchmark(config, RedisUser)
     else:
         logger.error("Invalid cluster mode provided.")
         logger.error("Please provide the --cluster-mode. master or worker")
         sys.exit(1)
 
 def init_redis_standalone_load_test(args):
-    set_env_vars(args)
-    set_env_cache_retry(args)
+    config = _init_config(args, "redis")
     setup_otel_tracing()
     cache = CacheConnect()
     cache_client = cache.redis_standalone_connect()
@@ -125,16 +105,15 @@ def init_redis_standalone_load_test(args):
         logger.error("Redis standalone client initialization failed.")
         sys.exit(1)
     try:
-        value = generate_string(args.value_size)
-        init_cache_set(cache_client, value, int(os.environ["TTL"]), args.set_keys)
+        value = generate_string(config.value_size)
+        init_cache_set(cache_client, value, config.ttl, config.set_keys)
     finally:
         cache_client.close()
         logger.info("Redis standalone connection closed after init.")
         shutdown_otel_tracing()
 
 def init_valkey_standalone_load_test(args):
-    set_env_vars(args)
-    set_env_cache_retry(args)
+    config = _init_config(args, "valkey")
     setup_otel_tracing()
     cache = CacheConnect()
     cache_client = cache.valkey_standalone_connect()
@@ -142,16 +121,15 @@ def init_valkey_standalone_load_test(args):
         logger.error("Valkey standalone client initialization failed.")
         sys.exit(1)
     try:
-        value = generate_string(args.value_size)
-        init_cache_set(cache_client, value, int(os.environ["TTL"]), args.set_keys)
+        value = generate_string(config.value_size)
+        init_cache_set(cache_client, value, config.ttl, config.set_keys)
     finally:
         cache_client.close()
         logger.info("Valkey standalone connection closed after init.")
         shutdown_otel_tracing()
 
 def init_valkey_load_test(args):
-    set_env_vars(args)
-    set_env_cache_retry(args)
+    config = _init_config(args, "valkey_cluster")
     setup_otel_tracing()
     cache = CacheConnect()
     cache_client = cache.valkey_connect()
@@ -159,16 +137,15 @@ def init_valkey_load_test(args):
         logger.error("Valkey client initialization failed.")
         sys.exit(1)
     try:
-        value = generate_string(args.value_size)
-        init_cache_set(cache_client, value, int(os.environ["TTL"]), args.set_keys)
+        value = generate_string(config.value_size)
+        init_cache_set(cache_client, value, config.ttl, config.set_keys)
     finally:
         cache_client.close()
         logger.info("Valkey connection closed after init.")
         shutdown_otel_tracing()
 
 def init_redis_load_test(args):
-    set_env_vars(args)
-    set_env_cache_retry(args)
+    config = _init_config(args, "redis_cluster")
     setup_otel_tracing()
     cache = CacheConnect()
     cache_client = cache.redis_connect()
@@ -176,8 +153,8 @@ def init_redis_load_test(args):
         logger.error("Redis client initialization failed.")
         sys.exit(1)
     try:
-        value = generate_string(args.value_size)
-        init_cache_set(cache_client, value, int(os.environ["TTL"]), args.set_keys)
+        value = generate_string(config.value_size)
+        init_cache_set(cache_client, value, config.ttl, config.set_keys)
     finally:
         cache_client.close()
         logger.info("Redis connection closed after init.")

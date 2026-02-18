@@ -2,12 +2,12 @@ from gevent import monkey
 monkey.patch_all()
 
 import hashlib
-import os
 import logging
 import gevent.lock
 from locust import User, TaskSet, task, constant_throughput
 from cache_benchmark.locust_cache import LocustCache
 from cache_benchmark.utils import generate_string
+from cache_benchmark.config import get_config
 import random
 import time
 
@@ -26,36 +26,36 @@ class RedisTaskSet(TaskSet):
 
     @task
     def cache_scenario(self):
-        hit_rate = float(os.environ.get("HIT_RATE"))
+        cfg = get_config()
+        hit_rate = cfg.hit_rate
         self.__class__.total_requests += 1
 
-        # 修正: environment.cache_conn → user.cache_conn
         if not hasattr(self.user, 'cache_conn') or self.user.cache_conn is None:
             logging.warning(f"User {id(self.user)} cache connection not available")
             return
 
-        if random.random() < float(hit_rate):
-            set_keys = int(os.environ.get("SET_KEYS", 1000))
+        if random.random() < hit_rate:
+            set_keys = cfg.set_keys
             key = f"key_{random.randint(1, set_keys)}"
             result = LocustCache.locust_redis_get(self, self.user.cache_conn, key, "default")
             if result is not None:
                 self.__class__.cache_hits += 1
             if result is None:
-                value = generate_string(os.environ.get("VALUE_SIZE"))
-                ttl = int(os.environ.get("TTL"))
+                value = generate_string(cfg.value_size)
+                ttl = cfg.ttl
                 LocustCache.locust_redis_set(self, self.user.cache_conn, key, value, "default", ttl)
         else:
             hash_key = hashlib.sha256(str(time.time_ns()).encode()).hexdigest()
-            ttl = int(os.environ.get("TTL"))
+            ttl = cfg.ttl
             result = LocustCache.locust_redis_get(self, self.user.cache_conn, hash_key, "dummy")
             if result is None:
-                value = generate_string(os.environ.get("VALUE_SIZE"))
+                value = generate_string(cfg.value_size)
                 LocustCache.locust_redis_set(self, self.user.cache_conn, hash_key, value, "dummy", ttl)
 
 class RedisUser(User):
     tasks = [RedisTaskSet]
-    wait_time = constant_throughput(float(os.environ.get("REQUEST_RATE", "1.0")))
-    host = os.environ.get("REDIS_HOST")
+    wait_time = constant_throughput(1.0)
+    host = "localhost"
     # Shared connection across all users (RedisCluster is thread/greenlet-safe)
     _shared_cache_conn = None
     _shared_conn_users = 0
@@ -68,7 +68,8 @@ class RedisUser(User):
             if cls._shared_cache_conn is None:
                 from cache_benchmark.cash_connect import CacheConnect
                 cache = CacheConnect()
-                cache_type = os.environ.get("CACHE_TYPE", "redis_cluster")
+                cfg = get_config()
+                cache_type = cfg.cache_type
                 if cache_type == "redis_cluster":
                     cls._shared_cache_conn = cache.redis_connect()
                 elif cache_type == "valkey_cluster":

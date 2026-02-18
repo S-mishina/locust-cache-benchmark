@@ -4,18 +4,8 @@ from redis.exceptions import TimeoutError, ConnectionError
 from valkey import Valkey
 from valkey.cluster import ValkeyCluster as ValkeyCluster, ClusterNode as ValleyClusterNode, ClusterDownError as ValkeyClusterDownError
 from valkey.exceptions import ConnectionError as ValkeyConnectionError, TimeoutError as ValkeyTimeoutError
-import os
+from cache_benchmark.config import get_config
 import logging
-
-
-def strtobool(val):
-    val = str(val).strip().lower()
-    if val in ('y', 'yes', 't', 'true', 'on', '1'):
-        return 1
-    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
-        return 0
-    else:
-        raise ValueError(f"invalid truth value {val!r}")
 
 
 class CacheConnect:
@@ -26,30 +16,29 @@ class CacheConnect:
         Returns:
             RedisCluster: Redis cluster connection object.
         """
-        redis_host = os.environ.get("REDIS_HOST")
-        redis_port = os.environ.get("REDIS_PORT")
-        connections_pool = os.environ.get("CONNECTIONS_POOL", "10")
-        ssl = os.environ.get("SSL")
-        query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
-
-        pool_size = int(connections_pool)
+        cfg = get_config()
+        cache_host = cfg.cache_host
+        cache_port = cfg.cache_port
+        pool_size = cfg.connections_pool
+        ssl = cfg.ssl
+        query_timeout = cfg.query_timeout
 
         logging.info(f"Creating Redis connection with pool size: {pool_size}")
-        logging.info(f"Connecting to Redis cluster at {redis_host}:{redis_port} SSL={ssl}")
+        logging.info(f"Connecting to Redis cluster at {cache_host}:{cache_port} SSL={ssl}")
 
-        if not redis_host or not redis_port:
-            logging.error("Environment variables REDIS_HOST and REDIS_PORT must be set.")
+        if not cache_host or not cache_port:
+            logging.error("cache_host and cache_port must be set in AppConfig.")
             return None
 
         startup_nodes = [
-            ClusterNode(redis_host, int(redis_port))
+            ClusterNode(cache_host, int(cache_port))
         ]
         try:
             conn = RedisCluster(
                 startup_nodes=startup_nodes,
                 decode_responses=True,
                 timeout=int(query_timeout),
-                ssl=bool(strtobool(ssl)),
+                ssl=ssl,
                 max_connections=pool_size,
                 ssl_cert_reqs=None,
                 # Facilitates reuse of connections
@@ -81,28 +70,27 @@ class CacheConnect:
         Returns:
             Redis: Redis connection object, or None on failure.
         """
-        redis_host = os.environ.get("REDIS_HOST")
-        redis_port = os.environ.get("REDIS_PORT")
-        connections_pool = os.environ.get("CONNECTIONS_POOL", "10")
-        ssl = os.environ.get("SSL")
-        query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
-
-        pool_size = int(connections_pool)
+        cfg = get_config()
+        cache_host = cfg.cache_host
+        cache_port = cfg.cache_port
+        pool_size = cfg.connections_pool
+        ssl = cfg.ssl
+        query_timeout = cfg.query_timeout
 
         logging.info(f"Creating Redis standalone connection with pool size: {pool_size}")
-        logging.info(f"Connecting to Redis standalone at {redis_host}:{redis_port} SSL={ssl}")
+        logging.info(f"Connecting to Redis standalone at {cache_host}:{cache_port} SSL={ssl}")
 
-        if not redis_host or not redis_port:
-            logging.error("Environment variables REDIS_HOST and REDIS_PORT must be set.")
+        if not cache_host or not cache_port:
+            logging.error("cache_host and cache_port must be set in AppConfig.")
             return None
 
         try:
             conn = Redis(
-                host=redis_host,
-                port=int(redis_port),
+                host=cache_host,
+                port=int(cache_port),
                 decode_responses=True,
                 socket_timeout=int(query_timeout),
-                ssl=bool(strtobool(ssl)),
+                ssl=ssl,
                 max_connections=pool_size,
                 socket_keepalive=True,
             )
@@ -126,29 +114,28 @@ class CacheConnect:
         Returns:
             ValkeyCluster: Valley cluster connection object.
         """
-        redis_host = os.environ.get("REDIS_HOST")
-        redis_port = os.environ.get("REDIS_PORT")
-        connections_pool = os.environ.get("CONNECTIONS_POOL", "10")
-        ssl = os.environ.get("SSL")
-        query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
-
-        pool_size = int(connections_pool)
+        cfg = get_config()
+        cache_host = cfg.cache_host
+        cache_port = cfg.cache_port
+        pool_size = cfg.connections_pool
+        ssl = cfg.ssl
+        query_timeout = cfg.query_timeout
 
         logging.info(f"Creating Valkey connection with pool size: {pool_size}")
-        logging.info(f"Connecting to Valkey cluster at {redis_host}:{redis_port} SSL={ssl}")
+        logging.info(f"Connecting to Valkey cluster at {cache_host}:{cache_port} SSL={ssl}")
 
-        if not redis_host or not redis_port:
-            logging.error("Environment variables REDIS_HOST and REDIS_PORT must be set.")
+        if not cache_host or not cache_port:
+            logging.error("cache_host and cache_port must be set in AppConfig.")
             return None
         startup_nodes = [
-            ValleyClusterNode(redis_host, int(redis_port))
+            ValleyClusterNode(cache_host, int(cache_port))
         ]
         try:
             conn = ValkeyCluster(
                 startup_nodes=startup_nodes,
                 decode_responses=True,
                 timeout=int(query_timeout),
-                ssl=bool(strtobool(ssl)),
+                ssl=ssl,
                 max_connections=pool_size,
                 ssl_cert_reqs=None,
                 # Facilitates reuse of connections
@@ -180,28 +167,27 @@ class CacheConnect:
         Returns:
             Valkey: Valkey connection object, or None on failure.
         """
-        redis_host = os.environ.get("REDIS_HOST")
-        redis_port = os.environ.get("REDIS_PORT")
-        connections_pool = os.environ.get("CONNECTIONS_POOL", "10")
-        ssl = os.environ.get("SSL")
-        query_timeout = os.environ.get("QUERY_TIMEOUT", "5")
-
-        pool_size = int(connections_pool)
+        cfg = get_config()
+        cache_host = cfg.cache_host
+        cache_port = cfg.cache_port
+        pool_size = cfg.connections_pool
+        ssl = cfg.ssl
+        query_timeout = cfg.query_timeout
 
         logging.info(f"Creating Valkey standalone connection with pool size: {pool_size}")
-        logging.info(f"Connecting to Valkey standalone at {redis_host}:{redis_port} SSL={ssl}")
+        logging.info(f"Connecting to Valkey standalone at {cache_host}:{cache_port} SSL={ssl}")
 
-        if not redis_host or not redis_port:
-            logging.error("Environment variables REDIS_HOST and REDIS_PORT must be set.")
+        if not cache_host or not cache_port:
+            logging.error("cache_host and cache_port must be set in AppConfig.")
             return None
 
         try:
             conn = Valkey(
-                host=redis_host,
-                port=int(redis_port),
+                host=cache_host,
+                port=int(cache_port),
                 decode_responses=True,
                 socket_timeout=int(query_timeout),
-                ssl=bool(strtobool(ssl)),
+                ssl=ssl,
                 max_connections=pool_size,
                 socket_keepalive=True,
             )
