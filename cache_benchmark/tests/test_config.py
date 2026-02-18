@@ -109,7 +109,7 @@ class TestAppConfig(unittest.TestCase):
 
 
 class TestFromArgsEnvOverride(unittest.TestCase):
-    """環境変数が設定されていれば優先されることを検証。"""
+    """Verify that environment variables take priority when set."""
 
     def _make_default_args(self):
         args = Mock()

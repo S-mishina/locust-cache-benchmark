@@ -15,7 +15,7 @@ def _strtobool(val):
         raise ValueError(f"invalid truth value {val!r}")
 
 
-# ── CLI引数名 → フィールド名 マッピング ─────────────────
+# ── CLI arg name → field name mapping ─────────────────
 _ARG_MAP: dict[str, str] = {
     "fqdn": "cache_host",
     "port": "cache_port",
@@ -41,23 +41,23 @@ _ARG_MAP: dict[str, str] = {
     "num_workers": "num_workers",
 }
 
-# ── フィールド名 → 環境変数名 (field.upper() と異なるもののみ) ──
+# ── Field name → env var name (only where it differs from field.upper()) ──
 _FIELD_ENV_OVERRIDE: dict[str, str] = {
     "otel_exporter_endpoint": "OTEL_EXPORTER_OTLP_ENDPOINT",
 }
 
 
 def _env_key(field_name: str) -> str:
-    """フィールド名から対応する環境変数名を返す。"""
+    """Return the environment variable name for a given field name."""
     return _FIELD_ENV_OVERRIDE.get(field_name, field_name.upper())
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  AppConfig
 #
-#  1 フィールド = デフォルト + 型 + バリデーション + description
-#  環境変数名は _env_key() で解決 (大半は FIELD_NAME.upper())
-#  CLI引数名は _ARG_MAP で解決
+#  1 field = default + type + validation + description
+#  Env var names resolved via _env_key() (mostly FIELD_NAME.upper())
+#  CLI arg names resolved via _ARG_MAP
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 class AppConfig(BaseModel):
@@ -197,18 +197,18 @@ class AppConfig(BaseModel):
             )
         return self
 
-    # ── Factory: CLI引数 + 環境変数 ─────────────────────────
+    # ── Factory: CLI args + env vars ─────────────────────────
 
     @classmethod
     def from_args(cls, args, cache_type: str = "redis_cluster") -> "AppConfig":
-        """環境変数 > CLI引数 > デフォルト の優先順位で構築する。"""
+        """Build config with priority: env var > CLI arg > default."""
         kwargs: dict = {}
 
-        # cache_type (CLI引数ではなくサブコマンドで決定)
+        # cache_type (determined by subcommand, not CLI arg)
         env_cache = os.environ.get("CACHE_TYPE")
         kwargs["cache_type"] = env_cache if env_cache is not None else cache_type
 
-        # 各フィールド: 環境変数があればそちら、なければ CLI引数
+        # Each field: use env var if set, otherwise CLI arg
         for arg_name, field_name in _ARG_MAP.items():
             env_val = os.environ.get(_env_key(field_name))
             if env_val is not None:
