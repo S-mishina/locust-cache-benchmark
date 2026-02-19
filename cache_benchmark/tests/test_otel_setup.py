@@ -39,12 +39,12 @@ class TestOtelSetup(unittest.TestCase):
         mock_processor = MagicMock()
         mock_instrumentor = MagicMock()
 
-        with patch("opentelemetry.trace.set_tracer_provider") as mock_set_provider, \
-             patch("opentelemetry.sdk.trace.TracerProvider", return_value=mock_provider), \
-             patch("opentelemetry.sdk.trace.export.BatchSpanProcessor", return_value=mock_processor), \
-             patch("opentelemetry.exporter.otlp.proto.grpc.trace_exporter.OTLPSpanExporter", return_value=mock_exporter), \
-             patch("opentelemetry.sdk.resources.Resource.create") as mock_resource, \
-             patch("opentelemetry.instrumentation.redis.RedisInstrumentor", return_value=mock_instrumentor):
+        with patch("cache_benchmark.otel_setup.trace.set_tracer_provider") as mock_set_provider, \
+             patch("cache_benchmark.otel_setup.TracerProvider", return_value=mock_provider), \
+             patch("cache_benchmark.otel_setup.BatchSpanProcessor", return_value=mock_processor), \
+             patch("cache_benchmark.otel_setup.OTLPSpanExporter", return_value=mock_exporter), \
+             patch("cache_benchmark.otel_setup.Resource.create") as mock_resource, \
+             patch("cache_benchmark.otel_setup.RedisInstrumentor", return_value=mock_instrumentor):
 
             result = otel_setup.setup_otel_tracing()
 
@@ -59,7 +59,7 @@ class TestOtelSetup(unittest.TestCase):
         result = otel_setup.setup_otel_tracing()
         self.assertTrue(result)
 
-    @patch("opentelemetry.trace.set_tracer_provider", side_effect=Exception("init error"))
+    @patch("cache_benchmark.otel_setup.trace.set_tracer_provider", side_effect=OSError("init error"))
     def test_setup_exception_returns_false(self, _mock):
         reset_config()
         set_config(AppConfig(otel_tracing_enabled=True))
@@ -77,7 +77,7 @@ class TestOtelSetup(unittest.TestCase):
         mock_provider.force_flush = MagicMock()
         mock_provider.shutdown = MagicMock()
 
-        with patch("opentelemetry.trace.get_tracer_provider", return_value=mock_provider):
+        with patch("cache_benchmark.otel_setup.trace.get_tracer_provider", return_value=mock_provider):
             result = otel_setup.shutdown_otel_tracing()
 
             self.assertTrue(result)
@@ -88,7 +88,7 @@ class TestOtelSetup(unittest.TestCase):
     def test_shutdown_exception_returns_false(self):
         otel_setup._otel_initialized = True
 
-        with patch("opentelemetry.trace.get_tracer_provider", side_effect=Exception("shutdown error")):
+        with patch("cache_benchmark.otel_setup.trace.get_tracer_provider", side_effect=OSError("shutdown error")):
             result = otel_setup.shutdown_otel_tracing()
             self.assertFalse(result)
 
