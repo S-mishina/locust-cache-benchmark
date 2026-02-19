@@ -328,7 +328,7 @@ A sample Kubernetes Job manifest is available at
 | `--connections-pool` | `-l`  | int   | `10`        | Connection pool size per cluster node                       |
 | `--request-rate`     | `-rr` | float | `1.0`       | Request rate per user per second (uses constant_throughput) |
 | `--retry-count`      | `-rc` | int   | `3`         | Number of retries on failure                                |
-| `--retry-wait`       | `-rw` | int   | `2`         | Wait time between retries in seconds                        |
+| `--retry-wait`       | `-rw` | int   | `2`         | Maximum wait time (cap) for exponential backoff in seconds  |
 | `--set-keys`         | `-s`  | int   | `1000`      | Number of keys to set (init only)                           |
 
 ### OpenTelemetry Parameters
