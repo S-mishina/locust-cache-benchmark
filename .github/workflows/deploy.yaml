@@ -55,6 +55,21 @@ jobs:
       attestations: write
       id-token: write
 
+  e2etest-redis-standalone-auth:
+    uses: ./.github/workflows/e2etest.yaml
+    with:
+      cache-platform: 'redis'
+      cache-mode: 'standalone'
+      cache-port: 6380
+      cache-password: 'testpassword123'
+      docker-compose-file: 'docker-compose-redis-standalone-auth.yml'
+      test-suffix: '-auth'
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+
   unittest:
     runs-on: ubuntu-24.04
     permissions:

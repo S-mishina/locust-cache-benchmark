@@ -49,6 +49,10 @@ class TestAppConfig(unittest.TestCase):
         self.assertEqual(config.master_bind_host, "127.0.0.1")
         self.assertEqual(config.master_bind_port, 5557)
         self.assertEqual(config.num_workers, 1)
+        self.assertIsNone(config.ssl_cert_reqs)
+        self.assertIsNone(config.ssl_ca_certs)
+        self.assertIsNone(config.cache_username)
+        self.assertIsNone(config.cache_password)
 
     def test_frozen(self):
         config = AppConfig()
@@ -80,6 +84,10 @@ class TestAppConfig(unittest.TestCase):
         args.master_bind_host = "0.0.0.0"
         args.master_bind_port = 5558
         args.num_workers = 3
+        args.cache_username = "myuser"
+        args.cache_password = "mypass"
+        args.ssl_cert_reqs = "required"
+        args.ssl_ca_certs = "/path/to/ca.pem"
 
         config = AppConfig.from_args(args, cache_type="valkey_cluster")
 
@@ -106,6 +114,10 @@ class TestAppConfig(unittest.TestCase):
         self.assertEqual(config.master_bind_host, "0.0.0.0")
         self.assertEqual(config.master_bind_port, 5558)
         self.assertEqual(config.num_workers, 3)
+        self.assertEqual(config.cache_username, "myuser")
+        self.assertEqual(config.cache_password, "mypass")
+        self.assertEqual(config.ssl_cert_reqs, "required")
+        self.assertEqual(config.ssl_ca_certs, "/path/to/ca.pem")
 
 
 class TestFromArgsEnvOverride(unittest.TestCase):
@@ -135,6 +147,10 @@ class TestFromArgsEnvOverride(unittest.TestCase):
         args.master_bind_host = "127.0.0.1"
         args.master_bind_port = 5557
         args.num_workers = 1
+        args.cache_username = None
+        args.cache_password = None
+        args.ssl_cert_reqs = None
+        args.ssl_ca_certs = None
         return args
 
     @patch.dict(os.environ, {"CACHE_HOST": "env-redis.example.com", "CACHE_PORT": "7000"}, clear=True)
@@ -322,6 +338,70 @@ class TestValidation(unittest.TestCase):
         j = '{"cache_port": 0, "hit_rate": 2.0}'
         with self.assertRaises(ValidationError):
             AppConfig.from_json(j)
+
+    def test_invalid_ssl_cert_reqs(self):
+        with self.assertRaises(ValidationError):
+            AppConfig(ssl_cert_reqs="invalid")
+
+    def test_valid_ssl_cert_reqs_none(self):
+        config = AppConfig(ssl_cert_reqs="none")
+        self.assertEqual(config.ssl_cert_reqs, "none")
+
+    def test_valid_ssl_cert_reqs_optional(self):
+        config = AppConfig(ssl_cert_reqs="optional")
+        self.assertEqual(config.ssl_cert_reqs, "optional")
+
+    def test_valid_ssl_cert_reqs_required(self):
+        config = AppConfig(ssl_cert_reqs="required")
+        self.assertEqual(config.ssl_cert_reqs, "required")
+
+
+class TestAuthSslEnvOverride(unittest.TestCase):
+    """Verify that environment variables override auth/SSL settings."""
+
+    def _make_default_args(self):
+        args = Mock()
+        args.fqdn = "localhost"
+        args.port = 6379
+        args.ssl = "false"
+        args.query_timeout = 1
+        args.connections_pool = 10
+        args.hit_rate = 0.5
+        args.value_size = 1
+        args.ttl = 60
+        args.request_rate = 1.0
+        args.set_keys = 1000
+        args.retry_count = 3
+        args.retry_wait = 2
+        args.otel_tracing_enabled = "false"
+        args.otel_exporter_endpoint = "http://localhost:4317"
+        args.otel_service_name = "locust-cache-benchmark"
+        args.duration = 60
+        args.connections = 1
+        args.spawn_rate = 1
+        args.cluster_mode = None
+        args.master_bind_host = "127.0.0.1"
+        args.master_bind_port = 5557
+        args.num_workers = 1
+        args.cache_username = None
+        args.cache_password = None
+        args.ssl_cert_reqs = None
+        args.ssl_ca_certs = None
+        return args
+
+    @patch.dict(os.environ, {
+        "CACHE_USERNAME": "env-user",
+        "CACHE_PASSWORD": "env-pass",
+        "SSL_CERT_REQS": "required",
+        "SSL_CA_CERTS": "/env/ca.pem",
+    }, clear=True)
+    def test_env_overrides_auth_ssl(self):
+        args = self._make_default_args()
+        config = AppConfig.from_args(args)
+        self.assertEqual(config.cache_username, "env-user")
+        self.assertEqual(config.cache_password, "env-pass")
+        self.assertEqual(config.ssl_cert_reqs, "required")
+        self.assertEqual(config.ssl_ca_certs, "/env/ca.pem")
 
 
 # --- Singleton ---
