@@ -9,6 +9,21 @@ import logging
 
 
 class CacheConnect:
+    @staticmethod
+    def _build_auth_ssl_kwargs():
+        """Build extra kwargs for authentication and SSL certificate settings."""
+        cfg = get_config()
+        kwargs = {}
+        if cfg.cache_password is not None:
+            kwargs["password"] = cfg.cache_password
+        if cfg.cache_username is not None:
+            kwargs["username"] = cfg.cache_username
+        if cfg.ssl_cert_reqs is not None:
+            kwargs["ssl_cert_reqs"] = cfg.ssl_cert_reqs
+        if cfg.ssl_ca_certs is not None:
+            kwargs["ssl_ca_certs"] = cfg.ssl_ca_certs
+        return kwargs
+
     def redis_connect(self):
         """
         Initializes a connection to the Redis cluster.
@@ -30,6 +45,7 @@ class CacheConnect:
             logging.error("cache_host and cache_port must be set in AppConfig.")
             return None
 
+        extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
         startup_nodes = [
             ClusterNode(cache_host, int(cache_port))
         ]
@@ -40,13 +56,13 @@ class CacheConnect:
                 timeout=int(query_timeout),
                 ssl=ssl,
                 max_connections=pool_size,
-                ssl_cert_reqs=None,
                 # Facilitates reuse of connections
                 connection_pool_kwargs={
                     'retry_on_timeout': True,
                     'socket_keepalive': True,
                     'socket_keepalive_options': {},
-                }
+                },
+                **extra_kwargs,
             )
             logging.info("Redis connection established successfully")
         except ClusterDownError as e:
@@ -84,6 +100,7 @@ class CacheConnect:
             logging.error("cache_host and cache_port must be set in AppConfig.")
             return None
 
+        extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
         try:
             conn = Redis(
                 host=cache_host,
@@ -93,6 +110,7 @@ class CacheConnect:
                 ssl=ssl,
                 max_connections=pool_size,
                 socket_keepalive=True,
+                **extra_kwargs,
             )
             conn.ping()
             logging.info("Redis standalone connection established successfully")
@@ -127,6 +145,7 @@ class CacheConnect:
         if not cache_host or not cache_port:
             logging.error("cache_host and cache_port must be set in AppConfig.")
             return None
+        extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
         startup_nodes = [
             ValleyClusterNode(cache_host, int(cache_port))
         ]
@@ -137,13 +156,13 @@ class CacheConnect:
                 timeout=int(query_timeout),
                 ssl=ssl,
                 max_connections=pool_size,
-                ssl_cert_reqs=None,
                 # Facilitates reuse of connections
                 connection_pool_kwargs={
                     'retry_on_timeout': True,
                     'socket_keepalive': True,
                     'socket_keepalive_options': {},
-                }
+                },
+                **extra_kwargs,
             )
             logging.info("Valkey connection established successfully")
         except ValkeyClusterDownError as e:
@@ -181,6 +200,7 @@ class CacheConnect:
             logging.error("cache_host and cache_port must be set in AppConfig.")
             return None
 
+        extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
         try:
             conn = Valkey(
                 host=cache_host,
@@ -190,6 +210,7 @@ class CacheConnect:
                 ssl=ssl,
                 max_connections=pool_size,
                 socket_keepalive=True,
+                **extra_kwargs,
             )
             conn.ping()
             logging.info("Valkey standalone connection established successfully")

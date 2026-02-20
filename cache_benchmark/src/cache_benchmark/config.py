@@ -39,6 +39,10 @@ _ARG_MAP: dict[str, str] = {
     "master_bind_host": "master_bind_host",
     "master_bind_port": "master_bind_port",
     "num_workers": "num_workers",
+    "cache_username": "cache_username",
+    "cache_password": "cache_password",
+    "ssl_cert_reqs": "ssl_cert_reqs",
+    "ssl_ca_certs": "ssl_ca_certs",
 }
 
 # ── Field name → env var name (only where it differs from field.upper()) ──
@@ -76,6 +80,22 @@ class AppConfig(BaseModel):
     ssl: bool = Field(
         default=False,
         description="Use SSL for connection",
+    )
+    ssl_cert_reqs: Optional[Literal["none", "optional", "required"]] = Field(
+        default=None,
+        description="SSL certificate verification mode (none/optional/required)",
+    )
+    ssl_ca_certs: Optional[str] = Field(
+        default=None,
+        description="Path to CA certificate file for SSL verification",
+    )
+    cache_username: Optional[str] = Field(
+        default=None,
+        description="Username for cache authentication (ACL)",
+    )
+    cache_password: Optional[str] = Field(
+        default=None,
+        description="Password for cache authentication",
     )
     query_timeout: int = Field(
         default=1,

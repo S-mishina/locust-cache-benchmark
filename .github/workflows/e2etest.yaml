@@ -42,6 +42,21 @@ on:
         type: string
         default: 'cluster'
         description: 'cluster or standalone'
+      cache-password:
+        required: false
+        type: string
+        default: ''
+        description: 'Password for cache authentication'
+      docker-compose-file:
+        required: false
+        type: string
+        default: ''
+        description: 'Custom docker-compose file (overrides default)'
+      test-suffix:
+        required: false
+        type: string
+        default: ''
+        description: 'Suffix for artifact name to avoid conflicts (e.g. -auth)'
 
 jobs:
   e2etest-cache:
@@ -112,7 +127,12 @@ jobs:
       - name: Run E2E test for Redis (cluster)
         if: ${{ inputs.cache-platform == 'redis' && inputs.cache-mode == 'cluster' }}
         run: |
-          docker-compose -f docker-compose-${{ inputs.cache-platform }}.yml up -d && \
+          COMPOSE_FILE="${{ inputs.docker-compose-file || format('docker-compose-{0}.yml', inputs.cache-platform) }}"
+          PASSWORD_ARG=""
+          if [ -n "${{ inputs.cache-password }}" ]; then
+            PASSWORD_ARG="--cache-password ${{ inputs.cache-password }}"
+          fi
+          docker-compose -f "$COMPOSE_FILE" up -d && \
           sleep 60 && \
           poetry run locust_cache_benchmark init \
             ${{ inputs.cache-platform }} \
@@ -120,7 +140,8 @@ jobs:
             -p ${{ inputs.cache-port }} \
             --ssl ${{ inputs.cache-ssl }} \
             --otel-tracing-enabled true \
-            --otel-exporter-endpoint http://localhost:4317 && \
+            --otel-exporter-endpoint http://localhost:4317 \
+            $PASSWORD_ARG && \
           poetry run locust_cache_benchmark loadtest local \
             ${{ inputs.cache-platform }} \
             -f ${{ inputs.cache-host }} \
@@ -130,12 +151,18 @@ jobs:
             -c 1 -n 1 -k 1 -t 60 \
             --ssl ${{ inputs.cache-ssl }} \
             --otel-tracing-enabled true \
-            --otel-exporter-endpoint http://localhost:4317
+            --otel-exporter-endpoint http://localhost:4317 \
+            $PASSWORD_ARG
 
       - name: Run E2E test for Valkey (cluster)
         if: ${{ inputs.cache-platform == 'valkey' && inputs.cache-mode == 'cluster' }}
         run: |
-          docker-compose -f docker-compose-${{ inputs.cache-platform }}.yml up -d
+          COMPOSE_FILE="${{ inputs.docker-compose-file || format('docker-compose-{0}.yml', inputs.cache-platform) }}"
+          PASSWORD_ARG=""
+          if [ -n "${{ inputs.cache-password }}" ]; then
+            PASSWORD_ARG="--cache-password ${{ inputs.cache-password }}"
+          fi
+          docker-compose -f "$COMPOSE_FILE" up -d
           echo "Waiting for Valkey cluster initialization..."
           sleep 180
           echo "Checking cluster status..."
@@ -147,7 +174,8 @@ jobs:
             -p 7200 \
             --ssl ${{ inputs.cache-ssl }} \
             --otel-tracing-enabled true \
-            --otel-exporter-endpoint http://localhost:4317
+            --otel-exporter-endpoint http://localhost:4317 \
+            $PASSWORD_ARG
           poetry run locust_cache_benchmark loadtest local \
             ${{ inputs.cache-platform }} \
             -f ${{ inputs.cache-host }} \
@@ -157,12 +185,18 @@ jobs:
             -c 1 -n 1 -k 1 -t 60 \
             --ssl ${{ inputs.cache-ssl }} \
             --otel-tracing-enabled true \
-            --otel-exporter-endpoint http://localhost:4317
+            --otel-exporter-endpoint http://localhost:4317 \
+            $PASSWORD_ARG
 
       - name: Run E2E test for Redis (standalone)
         if: ${{ inputs.cache-platform == 'redis' && inputs.cache-mode == 'standalone' }}
         run: |
-          docker-compose -f docker-compose-redis-standalone.yml up -d && \
+          COMPOSE_FILE="${{ inputs.docker-compose-file || 'docker-compose-redis-standalone.yml' }}"
+          PASSWORD_ARG=""
+          if [ -n "${{ inputs.cache-password }}" ]; then
+            PASSWORD_ARG="--cache-password ${{ inputs.cache-password }}"
+          fi
+          docker-compose -f "$COMPOSE_FILE" up -d && \
           sleep 10 && \
           poetry run locust_cache_benchmark init \
             redis-standalone \
@@ -170,7 +204,8 @@ jobs:
             -p ${{ inputs.cache-port }} \
             --ssl ${{ inputs.cache-ssl }} \
             --otel-tracing-enabled true \
-            --otel-exporter-endpoint http://localhost:4317 && \
+            --otel-exporter-endpoint http://localhost:4317 \
+            $PASSWORD_ARG && \
           poetry run locust_cache_benchmark loadtest local \
             redis-standalone \
             -f ${{ inputs.cache-host }} \
@@ -180,12 +215,18 @@ jobs:
             -c 1 -n 1 -k 1 -t 60 \
             --ssl ${{ inputs.cache-ssl }} \
             --otel-tracing-enabled true \
-            --otel-exporter-endpoint http://localhost:4317
+            --otel-exporter-endpoint http://localhost:4317 \
+            $PASSWORD_ARG
 
       - name: Run E2E test for Valkey (standalone)
         if: ${{ inputs.cache-platform == 'valkey' && inputs.cache-mode == 'standalone' }}
         run: |
-          docker-compose -f docker-compose-valkey-standalone.yml up -d && \
+          COMPOSE_FILE="${{ inputs.docker-compose-file || 'docker-compose-valkey-standalone.yml' }}"
+          PASSWORD_ARG=""
+          if [ -n "${{ inputs.cache-password }}" ]; then
+            PASSWORD_ARG="--cache-password ${{ inputs.cache-password }}"
+          fi
+          docker-compose -f "$COMPOSE_FILE" up -d && \
           sleep 10 && \
           poetry run locust_cache_benchmark init \
             valkey-standalone \
@@ -193,7 +234,8 @@ jobs:
             -p ${{ inputs.cache-port }} \
             --ssl ${{ inputs.cache-ssl }} \
             --otel-tracing-enabled true \
-            --otel-exporter-endpoint http://localhost:4317 && \
+            --otel-exporter-endpoint http://localhost:4317 \
+            $PASSWORD_ARG && \
           poetry run locust_cache_benchmark loadtest local \
             valkey-standalone \
             -f ${{ inputs.cache-host }} \
@@ -203,7 +245,8 @@ jobs:
             -c 1 -n 1 -k 1 -t 60 \
             --ssl ${{ inputs.cache-ssl }} \
             --otel-tracing-enabled true \
-            --otel-exporter-endpoint http://localhost:4317
+            --otel-exporter-endpoint http://localhost:4317 \
+            $PASSWORD_ARG
 
       - name: Verify OTel spans were exported
         run: |
@@ -219,5 +262,5 @@ jobs:
       - name: output test result upload
         uses: actions/upload-artifact@v4
         with:
-          name: e2etest-${{ inputs.cache-platform }}-${{ inputs.cache-mode }}
+          name: e2etest-${{ inputs.cache-platform }}-${{ inputs.cache-mode }}${{ inputs.test-suffix }}
           path: redis_test_results.csv

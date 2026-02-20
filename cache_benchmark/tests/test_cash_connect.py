@@ -130,3 +130,132 @@ class TestCashConnect(unittest.TestCase):
             mock_valkey.return_value = mock_conn
             conn = CacheConnect().valkey_standalone_connect()
             self.assertIsNone(conn)
+
+
+class TestAuthSslParams(unittest.TestCase):
+    """Test that auth/SSL parameters are correctly passed to connection constructors."""
+
+    def tearDown(self):
+        reset_config()
+
+    def _config_with_auth(self, **overrides):
+        defaults = dict(
+            cache_host="localhost",
+            cache_port=6379,
+            connections_pool=10,
+            ssl=True,
+            cache_username="testuser",
+            cache_password="testpass",
+            ssl_cert_reqs="required",
+            ssl_ca_certs="/path/to/ca.pem",
+        )
+        defaults.update(overrides)
+        return AppConfig(**defaults)
+
+    def _config_without_auth(self):
+        return AppConfig(
+            cache_host="localhost",
+            cache_port=6379,
+            connections_pool=10,
+            ssl=False,
+        )
+
+    # -- Redis cluster: auth set --
+    def test_redis_connect_with_auth(self):
+        set_config(self._config_with_auth())
+        with patch("cache_benchmark.cash_connect.RedisCluster") as mock_cls:
+            mock_cls.return_value = Mock()
+            CacheConnect().redis_connect()
+            kwargs = mock_cls.call_args
+            self.assertEqual(kwargs.kwargs["password"], "testpass")
+            self.assertEqual(kwargs.kwargs["username"], "testuser")
+            self.assertEqual(kwargs.kwargs["ssl_cert_reqs"], "required")
+            self.assertEqual(kwargs.kwargs["ssl_ca_certs"], "/path/to/ca.pem")
+
+    # -- Redis cluster: auth not set --
+    def test_redis_connect_without_auth(self):
+        set_config(self._config_without_auth())
+        with patch("cache_benchmark.cash_connect.RedisCluster") as mock_cls:
+            mock_cls.return_value = Mock()
+            CacheConnect().redis_connect()
+            kwargs = mock_cls.call_args
+            self.assertNotIn("password", kwargs.kwargs)
+            self.assertNotIn("username", kwargs.kwargs)
+            self.assertNotIn("ssl_cert_reqs", kwargs.kwargs)
+            self.assertNotIn("ssl_ca_certs", kwargs.kwargs)
+
+    # -- Redis standalone: auth set --
+    def test_redis_standalone_connect_with_auth(self):
+        set_config(self._config_with_auth())
+        with patch("cache_benchmark.cash_connect.Redis") as mock_cls:
+            mock_conn = Mock()
+            mock_cls.return_value = mock_conn
+            CacheConnect().redis_standalone_connect()
+            kwargs = mock_cls.call_args
+            self.assertEqual(kwargs.kwargs["password"], "testpass")
+            self.assertEqual(kwargs.kwargs["username"], "testuser")
+            self.assertEqual(kwargs.kwargs["ssl_cert_reqs"], "required")
+            self.assertEqual(kwargs.kwargs["ssl_ca_certs"], "/path/to/ca.pem")
+
+    # -- Redis standalone: auth not set --
+    def test_redis_standalone_connect_without_auth(self):
+        set_config(self._config_without_auth())
+        with patch("cache_benchmark.cash_connect.Redis") as mock_cls:
+            mock_conn = Mock()
+            mock_cls.return_value = mock_conn
+            CacheConnect().redis_standalone_connect()
+            kwargs = mock_cls.call_args
+            self.assertNotIn("password", kwargs.kwargs)
+            self.assertNotIn("username", kwargs.kwargs)
+            self.assertNotIn("ssl_cert_reqs", kwargs.kwargs)
+            self.assertNotIn("ssl_ca_certs", kwargs.kwargs)
+
+    # -- Valkey cluster: auth set --
+    def test_valkey_connect_with_auth(self):
+        set_config(self._config_with_auth())
+        with patch("cache_benchmark.cash_connect.ValkeyCluster") as mock_cls:
+            mock_cls.return_value = Mock()
+            CacheConnect().valkey_connect()
+            kwargs = mock_cls.call_args
+            self.assertEqual(kwargs.kwargs["password"], "testpass")
+            self.assertEqual(kwargs.kwargs["username"], "testuser")
+            self.assertEqual(kwargs.kwargs["ssl_cert_reqs"], "required")
+            self.assertEqual(kwargs.kwargs["ssl_ca_certs"], "/path/to/ca.pem")
+
+    # -- Valkey cluster: auth not set --
+    def test_valkey_connect_without_auth(self):
+        set_config(self._config_without_auth())
+        with patch("cache_benchmark.cash_connect.ValkeyCluster") as mock_cls:
+            mock_cls.return_value = Mock()
+            CacheConnect().valkey_connect()
+            kwargs = mock_cls.call_args
+            self.assertNotIn("password", kwargs.kwargs)
+            self.assertNotIn("username", kwargs.kwargs)
+            self.assertNotIn("ssl_cert_reqs", kwargs.kwargs)
+            self.assertNotIn("ssl_ca_certs", kwargs.kwargs)
+
+    # -- Valkey standalone: auth set --
+    def test_valkey_standalone_connect_with_auth(self):
+        set_config(self._config_with_auth())
+        with patch("cache_benchmark.cash_connect.Valkey") as mock_cls:
+            mock_conn = Mock()
+            mock_cls.return_value = mock_conn
+            CacheConnect().valkey_standalone_connect()
+            kwargs = mock_cls.call_args
+            self.assertEqual(kwargs.kwargs["password"], "testpass")
+            self.assertEqual(kwargs.kwargs["username"], "testuser")
+            self.assertEqual(kwargs.kwargs["ssl_cert_reqs"], "required")
+            self.assertEqual(kwargs.kwargs["ssl_ca_certs"], "/path/to/ca.pem")
+
+    # -- Valkey standalone: auth not set --
+    def test_valkey_standalone_connect_without_auth(self):
+        set_config(self._config_without_auth())
+        with patch("cache_benchmark.cash_connect.Valkey") as mock_cls:
+            mock_conn = Mock()
+            mock_cls.return_value = mock_conn
+            CacheConnect().valkey_standalone_connect()
+            kwargs = mock_cls.call_args
+            self.assertNotIn("password", kwargs.kwargs)
+            self.assertNotIn("username", kwargs.kwargs)
+            self.assertNotIn("ssl_cert_reqs", kwargs.kwargs)
+            self.assertNotIn("ssl_ca_certs", kwargs.kwargs)

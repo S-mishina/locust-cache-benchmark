@@ -38,6 +38,10 @@ class TestMain(unittest.TestCase):
         args.master_bind_host = "127.0.0.1"
         args.master_bind_port = 5557
         args.num_workers = 1
+        args.cache_username = None
+        args.cache_password = None
+        args.ssl_cert_reqs = None
+        args.ssl_ca_certs = None
         for k, v in overrides.items():
             setattr(args, k, v)
         return args

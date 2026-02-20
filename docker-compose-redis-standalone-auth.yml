@@ -1,0 +1,7 @@
+services:
+  redis-standalone-auth:
+    image: redis:6
+    ports:
+      - "6380:6379"
+    command: redis-server --requirepass testpassword123
+    restart: "no"

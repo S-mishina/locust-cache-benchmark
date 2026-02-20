@@ -157,3 +157,32 @@ def add_common_arguments(parser):
         default="locust-cache-benchmark",
         help="Specify the OpenTelemetry service name (default: locust-cache-benchmark)."
     )
+    group.add_argument(
+        "--cache-username",
+        type=str,
+        required=False,
+        default=None,
+        help="Username for cache authentication (ACL)."
+    )
+    group.add_argument(
+        "--cache-password",
+        type=str,
+        required=False,
+        default=None,
+        help="Password for cache authentication."
+    )
+    group.add_argument(
+        "--ssl-cert-reqs",
+        type=str,
+        required=False,
+        default=None,
+        choices=["none", "optional", "required"],
+        help="SSL certificate verification mode (none/optional/required)."
+    )
+    group.add_argument(
+        "--ssl-ca-certs",
+        type=str,
+        required=False,
+        default=None,
+        help="Path to CA certificate file for SSL verification."
+    )
