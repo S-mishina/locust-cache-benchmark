@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest.mock import patch, Mock
 from cache_benchmark.cash_connect import CacheConnect
@@ -33,9 +34,16 @@ class TestCashConnect(unittest.TestCase):
             self.assertIn("retry", kwargs)
             self.assertIsInstance(kwargs["retry"], Retry)
 
-    def test_redis_connect_retry_uses_env_vars(self):
-        os.environ["RETRY_ATTEMPTS"] = "5"
-        os.environ["RETRY_WAIT"] = "10"
+    def test_redis_connect_retry_uses_config(self):
+        reset_config()
+        set_config(AppConfig(
+            cache_host="localhost",
+            cache_port=6379,
+            connections_pool=10,
+            ssl=False,
+            retry_attempts=5,
+            retry_wait=10,
+        ))
         with patch("cache_benchmark.cash_connect.RedisCluster") as mock_cls:
             mock_cls.return_value = Mock()
             CacheConnect.redis_connect(self)
@@ -79,9 +87,16 @@ class TestCashConnect(unittest.TestCase):
             self.assertIsInstance(kwargs["retry"], ValkeyRetry)
             self.assertIn("cluster_error_retry_attempts", kwargs)
 
-    def test_valkey_connect_retry_uses_env_vars(self):
-        os.environ["RETRY_ATTEMPTS"] = "7"
-        os.environ["RETRY_WAIT"] = "4"
+    def test_valkey_connect_retry_uses_config(self):
+        reset_config()
+        set_config(AppConfig(
+            cache_host="localhost",
+            cache_port=6379,
+            connections_pool=10,
+            ssl=False,
+            retry_attempts=7,
+            retry_wait=4,
+        ))
         with patch("cache_benchmark.cash_connect.ValkeyCluster") as mock_cls:
             mock_cls.return_value = Mock()
             CacheConnect.valkey_connect(self)
