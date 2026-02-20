@@ -260,7 +260,7 @@ jobs:
           echo "OTel tracing verification passed"
 
       - name: output test result upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: e2etest-${{ inputs.cache-platform }}-${{ inputs.cache-mode }}${{ inputs.test-suffix }}
           path: redis_test_results.csv
