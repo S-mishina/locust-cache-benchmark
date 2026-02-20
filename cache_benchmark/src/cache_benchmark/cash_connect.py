@@ -1,9 +1,13 @@
 from redis import Redis
 from redis.cluster import RedisCluster, ClusterDownError, ClusterNode
 from redis.exceptions import TimeoutError, ConnectionError
+from redis.retry import Retry
+from redis.backoff import ExponentialBackoff
 from valkey import Valkey
 from valkey.cluster import ValkeyCluster as ValkeyCluster, ClusterNode as ValleyClusterNode, ClusterDownError as ValkeyClusterDownError
 from valkey.exceptions import ConnectionError as ValkeyConnectionError, TimeoutError as ValkeyTimeoutError
+from valkey.retry import Retry as ValkeyRetry
+from valkey.backoff import EqualJitterBackoff
 from cache_benchmark.config import get_config
 import logging
 
@@ -37,6 +41,8 @@ class CacheConnect:
         pool_size = cfg.connections_pool
         ssl = cfg.ssl
         query_timeout = cfg.query_timeout
+        retry_attempts = cfg.retry_attempts
+        retry_wait = cfg.retry_wait
 
         logging.info(f"Creating Redis connection with pool size: {pool_size}")
         logging.info(f"Connecting to Redis cluster at {cache_host}:{cache_port} SSL={ssl}")
@@ -56,9 +62,9 @@ class CacheConnect:
                 timeout=int(query_timeout),
                 ssl=ssl,
                 max_connections=pool_size,
+                retry=Retry(ExponentialBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
                 # Facilitates reuse of connections
                 connection_pool_kwargs={
-                    'retry_on_timeout': True,
                     'socket_keepalive': True,
                     'socket_keepalive_options': {},
                 },
@@ -92,6 +98,8 @@ class CacheConnect:
         pool_size = cfg.connections_pool
         ssl = cfg.ssl
         query_timeout = cfg.query_timeout
+        retry_attempts = cfg.retry_attempts
+        retry_wait = cfg.retry_wait
 
         logging.info(f"Creating Redis standalone connection with pool size: {pool_size}")
         logging.info(f"Connecting to Redis standalone at {cache_host}:{cache_port} SSL={ssl}")
@@ -110,6 +118,8 @@ class CacheConnect:
                 ssl=ssl,
                 max_connections=pool_size,
                 socket_keepalive=True,
+                retry=Retry(ExponentialBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
+                retry_on_error=[ConnectionError, TimeoutError],
                 **extra_kwargs,
             )
             conn.ping()
@@ -138,6 +148,8 @@ class CacheConnect:
         pool_size = cfg.connections_pool
         ssl = cfg.ssl
         query_timeout = cfg.query_timeout
+        retry_attempts = cfg.retry_attempts
+        retry_wait = cfg.retry_wait
 
         logging.info(f"Creating Valkey connection with pool size: {pool_size}")
         logging.info(f"Connecting to Valkey cluster at {cache_host}:{cache_port} SSL={ssl}")
@@ -156,9 +168,10 @@ class CacheConnect:
                 timeout=int(query_timeout),
                 ssl=ssl,
                 max_connections=pool_size,
+                cluster_error_retry_attempts=retry_attempts,
+                retry=ValkeyRetry(EqualJitterBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
                 # Facilitates reuse of connections
                 connection_pool_kwargs={
-                    'retry_on_timeout': True,
                     'socket_keepalive': True,
                     'socket_keepalive_options': {},
                 },
@@ -192,6 +205,8 @@ class CacheConnect:
         pool_size = cfg.connections_pool
         ssl = cfg.ssl
         query_timeout = cfg.query_timeout
+        retry_attempts = cfg.retry_attempts
+        retry_wait = cfg.retry_wait
 
         logging.info(f"Creating Valkey standalone connection with pool size: {pool_size}")
         logging.info(f"Connecting to Valkey standalone at {cache_host}:{cache_port} SSL={ssl}")
@@ -210,6 +225,8 @@ class CacheConnect:
                 ssl=ssl,
                 max_connections=pool_size,
                 socket_keepalive=True,
+                retry=ValkeyRetry(EqualJitterBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
+                retry_on_error=[ValkeyConnectionError, ValkeyTimeoutError],
                 **extra_kwargs,
             )
             conn.ping()
