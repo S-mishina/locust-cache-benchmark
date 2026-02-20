@@ -3,6 +3,8 @@ from cache_benchmark.config import get_config
 import time
 import logging
 
+logger = logging.getLogger(__name__)
+
 _tracer = trace.get_tracer("locust-cache-benchmark")
 
 def _get_request_type():
@@ -61,7 +63,7 @@ class LocustCache:
                     context={},
                     exception=e,
                 )
-                logging.error(f"Error during cache hit: {e}")
+                logger.error(f"Error during cache hit: {e}")
                 return None
 
     @staticmethod
@@ -109,5 +111,5 @@ class LocustCache:
                     context={},
                     exception=e,
                 )
-                logging.error(f"Error during cache set: {e}")
+                logger.error(f"Error during cache set: {e}")
                 return None

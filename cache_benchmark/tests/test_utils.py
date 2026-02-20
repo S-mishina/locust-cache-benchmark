@@ -114,7 +114,6 @@ class TestSaveResultsToCsv(unittest.TestCase):
 @patch("cache_benchmark.utils.shutdown_otel_tracing")
 @patch("cache_benchmark.utils.save_results_to_csv")
 @patch("cache_benchmark.utils.gevent")
-@patch("cache_benchmark.utils.stats_printer")
 @patch("cache_benchmark.utils.LocalRunner")
 @patch("cache_benchmark.utils.Environment")
 @patch("cache_benchmark.utils.setup_otel_tracing")
@@ -131,7 +130,7 @@ class TestLocustRunnerCashBenchmark(unittest.TestCase):
 
     def test_locust_runner_cash_benchmark(
         self, mock_setup_otel, mock_env_cls, mock_runner_cls,
-        mock_stats_printer, mock_gevent, mock_save_csv, mock_shutdown_otel,
+        mock_gevent, mock_save_csv, mock_shutdown_otel,
     ):
         mock_env = MagicMock()
         mock_env_cls.return_value = mock_env
@@ -155,7 +154,6 @@ class TestLocustRunnerCashBenchmark(unittest.TestCase):
 @patch("cache_benchmark.utils.save_results_to_csv")
 @patch("cache_benchmark.utils.gevent")
 @patch("cache_benchmark.utils.time")
-@patch("cache_benchmark.utils.stats_printer")
 @patch("cache_benchmark.utils.MasterRunner")
 @patch("cache_benchmark.utils.Environment")
 @patch("cache_benchmark.utils.setup_otel_tracing")
@@ -175,7 +173,7 @@ class TestLocustMasterRunnerBenchmark(unittest.TestCase):
 
     def test_locust_master_runner_benchmark(
         self, mock_setup_otel, mock_env_cls, mock_runner_cls,
-        mock_stats_printer, mock_time, mock_gevent, mock_save_csv, mock_shutdown_otel,
+        mock_time, mock_gevent, mock_save_csv, mock_shutdown_otel,
     ):
         mock_env = MagicMock()
         mock_env_cls.return_value = mock_env
@@ -202,7 +200,7 @@ class TestLocustMasterRunnerBenchmark(unittest.TestCase):
 
     def test_master_waits_for_workers(
         self, mock_setup_otel, mock_env_cls, mock_runner_cls,
-        mock_stats_printer, mock_time, mock_gevent, mock_save_csv, mock_shutdown_otel,
+        mock_time, mock_gevent, mock_save_csv, mock_shutdown_otel,
     ):
         mock_env = MagicMock()
         mock_env_cls.return_value = mock_env

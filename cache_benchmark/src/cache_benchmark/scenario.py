@@ -4,6 +4,8 @@ monkey.patch_all()
 import hashlib
 import logging
 import gevent.lock
+
+logger = logging.getLogger(__name__)
 from locust import User, TaskSet, task, constant_throughput
 from cache_benchmark.locust_cache import LocustCache
 from cache_benchmark.utils import generate_string
@@ -18,12 +20,12 @@ class RedisTaskSet(TaskSet):
     def on_stop(self):
         if self.__class__.total_requests > 0:
             hit_rate = (self.__class__.cache_hits / self.__class__.total_requests) * 100
-            logging.info(f"Total Requests: {self.__class__.total_requests}")
-            logging.info(f"Cache Hits: {self.__class__.cache_hits}")
-            logging.info(f"Cache Hit Rate: {hit_rate:.2f}%")
+            logger.info(f"Total Requests: {self.__class__.total_requests}")
+            logger.info(f"Cache Hits: {self.__class__.cache_hits}")
+            logger.info(f"Cache Hit Rate: {hit_rate:.2f}%")
         else:
-            logging.info("Total Requests: 0")
-            logging.info("Cache Hit Rate: N/A")
+            logger.info("Total Requests: 0")
+            logger.info("Cache Hit Rate: N/A")
 
     @task
     def cache_scenario(self):
@@ -32,7 +34,7 @@ class RedisTaskSet(TaskSet):
         self.__class__.total_requests += 1
 
         if not hasattr(self.user, 'cache_conn') or self.user.cache_conn is None:
-            logging.warning(f"User {id(self.user)} cache connection not available")
+            logger.warning(f"User {id(self.user)} cache connection not available")
             return
 
         if random.random() < hit_rate:
@@ -89,9 +91,9 @@ class RedisUser(User):
             if cls._shared_conn_users <= 0 and cls._shared_cache_conn is not None:
                 try:
                     cls._shared_cache_conn.close()
-                    logging.info("Shared cache connection closed")
+                    logger.info("Shared cache connection closed")
                 except Exception as e:
-                    logging.warning(f"Error closing shared cache connection: {e}")
+                    logger.warning(f"Error closing shared cache connection: {e}")
                 cls._shared_cache_conn = None
                 cls._shared_conn_users = 0
 
@@ -101,13 +103,13 @@ class RedisUser(User):
         self.cache_conn = self.__class__._get_shared_connection()
         if self.cache_conn:
             self._connected = True
-            logging.info(f"User {id(self)} connected successfully (shared)")
+            logger.info(f"User {id(self)} connected successfully (shared)")
         else:
-            logging.error(f"User {id(self)} connection failed")
+            logger.error(f"User {id(self)} connection failed")
 
     def on_stop(self):
         """Release shared connection reference when user exits"""
         if self._connected:
             self.__class__._release_shared_connection()
             self._connected = False
-        logging.info(f"User {id(self)} released connection")
+        logger.info(f"User {id(self)} released connection")
