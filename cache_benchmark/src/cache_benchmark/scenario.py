@@ -7,6 +7,7 @@ import gevent.lock
 from locust import User, TaskSet, task, constant_throughput
 from cache_benchmark.locust_cache import LocustCache
 from cache_benchmark.utils import generate_string
+from cache_benchmark.cash_connect import CacheConnect
 from cache_benchmark.config import get_config
 import random
 import time
@@ -66,7 +67,6 @@ class RedisUser(User):
         """Get or create a shared RedisCluster/ValkeyCluster connection."""
         with cls._conn_lock:
             if cls._shared_cache_conn is None:
-                from cache_benchmark.cash_connect import CacheConnect
                 cache = CacheConnect()
                 cfg = get_config()
                 cache_type = cfg.cache_type
@@ -97,13 +97,17 @@ class RedisUser(User):
 
     def on_start(self):
         """Acquire shared connection at user startup"""
+        self._connected = False
         self.cache_conn = self.__class__._get_shared_connection()
         if self.cache_conn:
+            self._connected = True
             logging.info(f"User {id(self)} connected successfully (shared)")
         else:
             logging.error(f"User {id(self)} connection failed")
 
     def on_stop(self):
         """Release shared connection reference when user exits"""
-        self.__class__._release_shared_connection()
+        if self._connected:
+            self.__class__._release_shared_connection()
+            self._connected = False
         logging.info(f"User {id(self)} released connection")

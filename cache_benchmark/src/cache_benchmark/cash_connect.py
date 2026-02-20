@@ -50,16 +50,16 @@ class CacheConnect:
             )
             logging.info("Redis connection established successfully")
         except ClusterDownError as e:
-            logging.warning(f"Cluster is down. Retrying...: {e}")
+            logging.error(f"Cluster is down. Retrying...: {e}")
             conn = None
         except TimeoutError as e:
-            logging.warning(f"Timeout error during Redis initialization: {e}")
+            logging.error(f"Timeout error during Redis initialization: {e}")
             conn = None
         except ConnectionError as e:
-            logging.warning(f"Connection error: {e}")
+            logging.error(f"Connection error: {e}")
             conn = None
         except Exception as e:
-            logging.warning(f"Unexpected error during Redis initialization: {e}")
+            logging.error(f"Unexpected error during Redis initialization: {e}")
             conn = None
         return conn
 
@@ -97,13 +97,13 @@ class CacheConnect:
             conn.ping()
             logging.info("Redis standalone connection established successfully")
         except TimeoutError as e:
-            logging.warning(f"Timeout error during Redis standalone initialization: {e}")
+            logging.error(f"Timeout error during Redis standalone initialization: {e}")
             conn = None
         except ConnectionError as e:
-            logging.warning(f"Connection error: {e}")
+            logging.error(f"Connection error: {e}")
             conn = None
         except Exception as e:
-            logging.warning(f"Unexpected error during Redis standalone initialization: {e}")
+            logging.error(f"Unexpected error during Redis standalone initialization: {e}")
             conn = None
         return conn
 
@@ -147,16 +147,16 @@ class CacheConnect:
             )
             logging.info("Valkey connection established successfully")
         except ValkeyClusterDownError as e:
-            logging.warning(f"Cluster is down. Retrying...: {e}")
+            logging.error(f"Cluster is down. Retrying...: {e}")
             conn = None
         except ValkeyTimeoutError as e:
-            logging.warning(f"Timeout error during Valkey initialization: {e}")
+            logging.error(f"Timeout error during Valkey initialization: {e}")
             conn = None
         except ValkeyConnectionError as e:
-            logging.warning(f"Connection error: {e}")
+            logging.error(f"Connection error: {e}")
             conn = None
         except Exception as e:
-            logging.warning(f"Unexpected error during Valkey initialization: {e}")
+            logging.error(f"Unexpected error during Valkey initialization: {e}")
             conn = None
         return conn
 
@@ -194,12 +194,12 @@ class CacheConnect:
             conn.ping()
             logging.info("Valkey standalone connection established successfully")
         except ValkeyTimeoutError as e:
-            logging.warning(f"Timeout error during Valkey standalone initialization: {e}")
+            logging.error(f"Timeout error during Valkey standalone initialization: {e}")
             conn = None
         except ValkeyConnectionError as e:
-            logging.warning(f"Connection error: {e}")
+            logging.error(f"Connection error: {e}")
             conn = None
         except Exception as e:
-            logging.warning(f"Unexpected error during Valkey standalone initialization: {e}")
+            logging.error(f"Unexpected error during Valkey standalone initialization: {e}")
             conn = None
         return conn

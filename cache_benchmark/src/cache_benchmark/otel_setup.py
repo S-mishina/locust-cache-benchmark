@@ -1,4 +1,10 @@
 import logging
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.instrumentation.redis import RedisInstrumentor
 from cache_benchmark.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -30,13 +36,6 @@ def setup_otel_tracing():
         return False
 
     try:
-        from opentelemetry import trace
-        from opentelemetry.sdk.trace import TracerProvider
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-        from opentelemetry.sdk.resources import Resource
-        from opentelemetry.instrumentation.redis import RedisInstrumentor
-
         service_name = cfg.otel_service_name
         endpoint = cfg.otel_exporter_endpoint
 
@@ -56,7 +55,7 @@ def setup_otel_tracing():
             endpoint,
         )
         return True
-    except Exception:
+    except (ConnectionError, OSError, ValueError):
         logger.exception("Failed to initialize OpenTelemetry tracing.")
         return False
 
@@ -74,8 +73,6 @@ def shutdown_otel_tracing():
         return False
 
     try:
-        from opentelemetry import trace
-
         provider = trace.get_tracer_provider()
         if hasattr(provider, "force_flush"):
             provider.force_flush()
@@ -85,6 +82,6 @@ def shutdown_otel_tracing():
         _otel_initialized = False
         logger.info("OpenTelemetry tracing shut down successfully.")
         return True
-    except Exception:
+    except (OSError, TimeoutError):
         logger.exception("Failed to shut down OpenTelemetry tracing.")
         return False

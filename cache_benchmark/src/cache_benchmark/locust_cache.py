@@ -22,12 +22,13 @@ def _get_db_system():
     return "redis"
 
 class LocustCache:
-    def locust_redis_get(self, cache_connection, key, name):
+    @staticmethod
+    def locust_redis_get(task, cache_connection, key, name):
         """
         Performs a GET operation on the Redis cluster with retry logic.
 
         Args:
-            self: Locust task instance.
+            task: Locust task instance.
             cache_connection (RedisCluster): Redis cluster connection object.
             key (str): Key to get from Redis.
             name (str): Name for the request event.
@@ -53,7 +54,7 @@ class LocustCache:
                         try:
                             result = cache_connection.get(key)
                             total_time = (time.perf_counter() - start_time) * 1000
-                            self.user.environment.events.request.fire(
+                            task.user.environment.events.request.fire(
                                 request_type=_get_request_type(),
                                 name="get_value_{}".format(name),
                                 response_time=total_time,
@@ -65,7 +66,7 @@ class LocustCache:
                             total_time = (time.perf_counter() - start_time) * 1000
                             span.record_exception(e)
                             span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
-                            self.user.environment.events.request.fire(
+                            task.user.environment.events.request.fire(
                                 request_type=_get_request_type(),
                                 name="get_value_{}".format(name),
                                 response_time=total_time,
@@ -82,12 +83,13 @@ class LocustCache:
             result = None
         return result
 
-    def locust_redis_set(self, cache_connection, key, value, name, ttl):
+    @staticmethod
+    def locust_redis_set(task, cache_connection, key, value, name, ttl):
         """
         Performs a SET operation on the Redis cluster with retry logic.
 
         Args:
-            self: Locust task instance.
+            task: Locust task instance.
             cache_connection (RedisCluster): Redis cluster connection object.
             key (str): Key to set in Redis.
             value (str): Value to set in Redis.
@@ -115,7 +117,7 @@ class LocustCache:
                         try:
                             result = cache_connection.set(key, value, ex=int(ttl))
                             total_time = (time.perf_counter() - start_time) * 1000
-                            self.user.environment.events.request.fire(
+                            task.user.environment.events.request.fire(
                                 request_type=_get_request_type(),
                                 name="set_value_{}".format(name),
                                 response_time=total_time,
@@ -127,7 +129,7 @@ class LocustCache:
                             total_time = (time.perf_counter() - start_time) * 1000
                             span.record_exception(e)
                             span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
-                            self.user.environment.events.request.fire(
+                            task.user.environment.events.request.fire(
                                 request_type=_get_request_type(),
                                 name="set_value_{}".format(name),
                                 response_time=total_time,

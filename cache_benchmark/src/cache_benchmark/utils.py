@@ -1,5 +1,6 @@
 import csv
 import logging
+import sys
 import gevent
 from locust.env import Environment
 from locust.runners import LocalRunner, MasterRunner, WorkerRunner
@@ -9,8 +10,6 @@ import time
 from cache_benchmark.otel_setup import setup_otel_tracing, shutdown_otel_tracing
 
 logger = logging.getLogger(__name__)
-
-logging.basicConfig(level=logging.DEBUG)
 
 def generate_string(size_in_kb):
     """
@@ -44,7 +43,7 @@ def init_cache_set(cache_client, value, ttl, set_keys=1000):
         logging.info("Success")
     else:
         logging.error("Cache client initialization failed.")
-        exit(1)
+        sys.exit(1)
 
 def save_results_to_csv(stats, filename="test_results.csv"):
     """
