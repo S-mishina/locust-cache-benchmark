@@ -88,6 +88,7 @@ class TestAppConfig(unittest.TestCase):
         args.cache_password = "mypass"
         args.ssl_cert_reqs = "required"
         args.ssl_ca_certs = "/path/to/ca.pem"
+        args.otel_metrics_enabled = "false"
 
         config = AppConfig.from_args(args, cache_type="valkey_cluster")
 
@@ -140,6 +141,7 @@ class TestFromArgsEnvOverride(unittest.TestCase):
         args.otel_tracing_enabled = "false"
         args.otel_exporter_endpoint = "http://localhost:4317"
         args.otel_service_name = "locust-cache-benchmark"
+        args.otel_metrics_enabled = "false"
         args.duration = 60
         args.connections = 1
         args.spawn_rate = 1
@@ -376,6 +378,7 @@ class TestAuthSslEnvOverride(unittest.TestCase):
         args.otel_tracing_enabled = "false"
         args.otel_exporter_endpoint = "http://localhost:4317"
         args.otel_service_name = "locust-cache-benchmark"
+        args.otel_metrics_enabled = "false"
         args.duration = 60
         args.connections = 1
         args.spawn_rate = 1
