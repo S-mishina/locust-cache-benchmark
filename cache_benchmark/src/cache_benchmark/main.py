@@ -7,9 +7,10 @@ from cache_benchmark.cash_connect import CacheConnect
 from cache_benchmark.scenario import RedisUser
 from cache_benchmark.otel_setup import setup_otel_tracing, shutdown_otel_tracing
 import logging
+from cache_benchmark.log_setup import setup_json_logging
 
+setup_json_logging()
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 def _init_config(args, cache_type):
     config = AppConfig.from_args(args, cache_type=cache_type)

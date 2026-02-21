@@ -5,7 +5,6 @@ import gevent
 from locust.env import Environment
 from locust.runners import LocalRunner, MasterRunner, WorkerRunner
 from locust import constant_throughput
-from locust.stats import stats_printer
 import time
 from cache_benchmark.otel_setup import setup_otel_tracing, shutdown_otel_tracing
 
@@ -34,15 +33,15 @@ def init_cache_set(cache_client, value, ttl, set_keys=1000):
         set_keys (int): Number of keys to set in the cache (default: 1000).
     """
     if cache_client is not None:
-        logging.info("Redis client initialized successfully.")
-        logging.info(f"Populating cache with {set_keys} keys...")
+        logger.info("Redis client initialized successfully.")
+        logger.info(f"Populating cache with {set_keys} keys...")
         for i in range(1, set_keys + 1):
             key = f"key_{i}"
             if cache_client.get(key) is None:
                 cache_client.set(key, value, ex=int(ttl))
-        logging.info("Success")
+        logger.info("Success")
     else:
-        logging.error("Cache client initialization failed.")
+        logger.error("Cache client initialization failed.")
         sys.exit(1)
 
 def save_results_to_csv(stats, filename="test_results.csv"):
@@ -68,20 +67,34 @@ def save_results_to_csv(stats, filename="test_results.csv"):
                 entry.current_rps
             ])
 
+def _log_stats(stats):
+    for (request_type, name), entry in stats.entries.items():
+        logger.info(
+            "stats",
+            extra={
+                "request_name": name,
+                "request_type": request_type,
+                "num_requests": entry.num_requests,
+                "num_failures": entry.num_failures,
+                "avg_response_time": round(entry.avg_response_time, 2),
+                "min_response_time": round(entry.min_response_time or 0, 2),
+                "max_response_time": round(entry.max_response_time or 0, 2),
+                "current_rps": round(entry.current_rps, 2),
+            },
+        )
+
 def locust_runner_cash_benchmark(config, redisuser):
     setup_otel_tracing()
     redisuser.wait_time = constant_throughput(config.request_rate)
     env = Environment(user_classes=[redisuser])
-    env.events.request.add_listener(lambda **kwargs: stats_printer(env.stats))
     runner = LocalRunner(env)
     redisuser.host = f"http://{config.cache_host}:{config.cache_port}"
-    gevent.spawn(stats_printer(env.stats))
     runner.start(user_count=config.connections, spawn_rate=config.spawn_rate)
-    stats_printer(env.stats)
-    logging.info("Starting Locust load test...")
+    logger.info("Starting Locust load test...")
     gevent.sleep(config.duration)
     runner.quit()
-    logging.info("Load test completed.")
+    _log_stats(env.stats)
+    logger.info("Load test completed.")
     save_results_to_csv(env.stats, filename="redis_test_results.csv")
     shutdown_otel_tracing()
 
@@ -92,20 +105,18 @@ def locust_master_runner_benchmark(config, redisuser):
     setup_otel_tracing()
     redisuser.wait_time = constant_throughput(config.request_rate)
     env = Environment(user_classes=[redisuser])
-    env.events.request.add_listener(lambda **kwargs: stats_printer(env.stats))
     runner = MasterRunner(env, master_bind_host=config.master_bind_host, master_bind_port=config.master_bind_port)
-    logging.info("Master is waiting for workers to connect...")
+    logger.info("Master is waiting for workers to connect...")
     while len(runner.clients) < config.num_workers:
-        logging.info(f"Waiting for workers... ({len(runner.clients)}/{config.num_workers} connected)")
+        logger.info(f"Waiting for workers... ({len(runner.clients)}/{config.num_workers} connected)")
         time.sleep(1)
-    gevent.spawn(stats_printer(env.stats))
-    logging.info(f"All {config.num_workers} workers are connected. Starting the load test...")
+    logger.info(f"All {config.num_workers} workers are connected. Starting the load test...")
     runner.start(user_count=config.connections, spawn_rate=config.spawn_rate)
-    stats_printer(env.stats)
-    logging.info("Starting Locust load test in Master mode...")
+    logger.info("Starting Locust load test in Master mode...")
     gevent.sleep(config.duration)
     runner.quit()
-    logging.info("Load test completed.")
+    _log_stats(env.stats)
+    logger.info("Load test completed.")
     save_results_to_csv(env.stats, filename="redis_test_results_master.csv")
     shutdown_otel_tracing()
 
@@ -119,8 +130,8 @@ def locust_worker_runner_benchmark(config, redisuser):
 
     runner = WorkerRunner(env, master_host=config.master_bind_host, master_port=config.master_bind_port)
 
-    logging.info(f"Worker connecting to Master at {config.master_bind_host}:{config.master_bind_port}...")
+    logger.info(f"Worker connecting to Master at {config.master_bind_host}:{config.master_bind_port}...")
     runner.greenlet.join()
 
-    logging.info("Worker load test completed.")
+    logger.info("Worker load test completed.")
     shutdown_otel_tracing()

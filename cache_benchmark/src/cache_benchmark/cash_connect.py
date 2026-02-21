@@ -11,6 +11,8 @@ from valkey.backoff import EqualJitterBackoff
 from cache_benchmark.config import get_config
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 class CacheConnect:
     @staticmethod
@@ -44,11 +46,11 @@ class CacheConnect:
         retry_attempts = cfg.retry_attempts
         retry_wait = cfg.retry_wait
 
-        logging.info(f"Creating Redis connection with pool size: {pool_size}")
-        logging.info(f"Connecting to Redis cluster at {cache_host}:{cache_port} SSL={ssl}")
+        logger.info(f"Creating Redis connection with pool size: {pool_size}")
+        logger.info(f"Connecting to Redis cluster at {cache_host}:{cache_port} SSL={ssl}")
 
         if not cache_host or not cache_port:
-            logging.error("cache_host and cache_port must be set in AppConfig.")
+            logger.error("cache_host and cache_port must be set in AppConfig.")
             return None
 
         extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
@@ -70,18 +72,18 @@ class CacheConnect:
                 },
                 **extra_kwargs,
             )
-            logging.info("Redis connection established successfully")
+            logger.info("Redis connection established successfully")
         except ClusterDownError as e:
-            logging.error(f"Cluster is down. Retrying...: {e}")
+            logger.error(f"Cluster is down. Retrying...: {e}")
             conn = None
         except TimeoutError as e:
-            logging.error(f"Timeout error during Redis initialization: {e}")
+            logger.error(f"Timeout error during Redis initialization: {e}")
             conn = None
         except ConnectionError as e:
-            logging.error(f"Connection error: {e}")
+            logger.error(f"Connection error: {e}")
             conn = None
         except Exception as e:
-            logging.error(f"Unexpected error during Redis initialization: {e}")
+            logger.error(f"Unexpected error during Redis initialization: {e}")
             conn = None
         return conn
 
@@ -101,11 +103,11 @@ class CacheConnect:
         retry_attempts = cfg.retry_attempts
         retry_wait = cfg.retry_wait
 
-        logging.info(f"Creating Redis standalone connection with pool size: {pool_size}")
-        logging.info(f"Connecting to Redis standalone at {cache_host}:{cache_port} SSL={ssl}")
+        logger.info(f"Creating Redis standalone connection with pool size: {pool_size}")
+        logger.info(f"Connecting to Redis standalone at {cache_host}:{cache_port} SSL={ssl}")
 
         if not cache_host or not cache_port:
-            logging.error("cache_host and cache_port must be set in AppConfig.")
+            logger.error("cache_host and cache_port must be set in AppConfig.")
             return None
 
         extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
@@ -123,15 +125,15 @@ class CacheConnect:
                 **extra_kwargs,
             )
             conn.ping()
-            logging.info("Redis standalone connection established successfully")
+            logger.info("Redis standalone connection established successfully")
         except TimeoutError as e:
-            logging.error(f"Timeout error during Redis standalone initialization: {e}")
+            logger.error(f"Timeout error during Redis standalone initialization: {e}")
             conn = None
         except ConnectionError as e:
-            logging.error(f"Connection error: {e}")
+            logger.error(f"Connection error: {e}")
             conn = None
         except Exception as e:
-            logging.error(f"Unexpected error during Redis standalone initialization: {e}")
+            logger.error(f"Unexpected error during Redis standalone initialization: {e}")
             conn = None
         return conn
 
@@ -151,11 +153,11 @@ class CacheConnect:
         retry_attempts = cfg.retry_attempts
         retry_wait = cfg.retry_wait
 
-        logging.info(f"Creating Valkey connection with pool size: {pool_size}")
-        logging.info(f"Connecting to Valkey cluster at {cache_host}:{cache_port} SSL={ssl}")
+        logger.info(f"Creating Valkey connection with pool size: {pool_size}")
+        logger.info(f"Connecting to Valkey cluster at {cache_host}:{cache_port} SSL={ssl}")
 
         if not cache_host or not cache_port:
-            logging.error("cache_host and cache_port must be set in AppConfig.")
+            logger.error("cache_host and cache_port must be set in AppConfig.")
             return None
         extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
         startup_nodes = [
@@ -177,18 +179,18 @@ class CacheConnect:
                 },
                 **extra_kwargs,
             )
-            logging.info("Valkey connection established successfully")
+            logger.info("Valkey connection established successfully")
         except ValkeyClusterDownError as e:
-            logging.error(f"Cluster is down. Retrying...: {e}")
+            logger.error(f"Cluster is down. Retrying...: {e}")
             conn = None
         except ValkeyTimeoutError as e:
-            logging.error(f"Timeout error during Valkey initialization: {e}")
+            logger.error(f"Timeout error during Valkey initialization: {e}")
             conn = None
         except ValkeyConnectionError as e:
-            logging.error(f"Connection error: {e}")
+            logger.error(f"Connection error: {e}")
             conn = None
         except Exception as e:
-            logging.error(f"Unexpected error during Valkey initialization: {e}")
+            logger.error(f"Unexpected error during Valkey initialization: {e}")
             conn = None
         return conn
 
@@ -208,11 +210,11 @@ class CacheConnect:
         retry_attempts = cfg.retry_attempts
         retry_wait = cfg.retry_wait
 
-        logging.info(f"Creating Valkey standalone connection with pool size: {pool_size}")
-        logging.info(f"Connecting to Valkey standalone at {cache_host}:{cache_port} SSL={ssl}")
+        logger.info(f"Creating Valkey standalone connection with pool size: {pool_size}")
+        logger.info(f"Connecting to Valkey standalone at {cache_host}:{cache_port} SSL={ssl}")
 
         if not cache_host or not cache_port:
-            logging.error("cache_host and cache_port must be set in AppConfig.")
+            logger.error("cache_host and cache_port must be set in AppConfig.")
             return None
 
         extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
@@ -230,14 +232,14 @@ class CacheConnect:
                 **extra_kwargs,
             )
             conn.ping()
-            logging.info("Valkey standalone connection established successfully")
+            logger.info("Valkey standalone connection established successfully")
         except ValkeyTimeoutError as e:
-            logging.error(f"Timeout error during Valkey standalone initialization: {e}")
+            logger.error(f"Timeout error during Valkey standalone initialization: {e}")
             conn = None
         except ValkeyConnectionError as e:
-            logging.error(f"Connection error: {e}")
+            logger.error(f"Connection error: {e}")
             conn = None
         except Exception as e:
-            logging.error(f"Unexpected error during Valkey standalone initialization: {e}")
+            logger.error(f"Unexpected error during Valkey standalone initialization: {e}")
             conn = None
         return conn
