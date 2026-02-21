@@ -352,6 +352,75 @@ A sample Kubernetes Job manifest is available at
 | `--master-bind-port` | `-mbp` | int  | `5557`      | Master node port                |
 | `--num-workers`      | `-nw`  | int  | `1`         | Number of workers (master only) |
 
+### YAML Configuration File
+
+Instead of passing many CLI parameters, you can use
+a YAML configuration file with the `--config` (`-C`)
+option. When `--config` is specified, **other CLI
+parameters cannot be used** (the tool will exit with
+an error).
+
+Priority order in YAML mode:
+**Environment variable > YAML value > Default**
+
+```sh
+# Run with YAML config file
+locust_cache_benchmark loadtest local redis --config config.yaml
+
+# Environment variables override YAML values
+CACHE_HOST=env-host locust_cache_benchmark loadtest local redis --config config.yaml
+
+# --config and other CLI parameters cannot be combined (error)
+# NG: locust_cache_benchmark loadtest local redis --config config.yaml --port 7000
+```
+
+Example YAML configuration file:
+
+```yaml
+# cache_type: redis_cluster
+
+connection:
+  host: redis.example.com
+  port: 6379
+  ssl: true
+  ssl_cert_reqs: required
+  ssl_ca_certs: /path/to/ca.pem
+  username: myuser
+  password: mypass
+  timeout: 2
+  pool_size: 20
+
+loadtest:
+  hit_rate: 0.8
+  value_size: 10
+  ttl: 300
+  request_rate: 5.0
+  set_keys: 1000
+
+retry:
+  attempts: 5
+  wait: 3
+
+opentelemetry:
+  tracing_enabled: true
+  metrics_enabled: true
+  exporter_endpoint: "http://otel-collector:4317"
+  service_name: "my-benchmark"
+
+runner:
+  duration: 120
+  connections: 10
+  spawn_rate: 5
+  cluster_mode: master
+  master_bind_host: "0.0.0.0"
+  master_bind_port: 5557
+  num_workers: 3
+```
+
+All sections and fields are optional. Only specify
+what you need. Unknown keys will cause a validation
+error.
+
 ## Tips
 
 ### Cloud vendor metrics delay

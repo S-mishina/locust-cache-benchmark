@@ -4,6 +4,13 @@ def add_common_arguments(parser):
     """
     group = parser.add_argument_group("Common Arguments")
     group.add_argument(
+        "--config", "-C",
+        type=str,
+        required=False,
+        default=None,
+        help="Path to YAML configuration file. Cannot be used with other CLI parameters.",
+    )
+    group.add_argument(
         "--fqdn", "-f",
         type=str,
         required=False,

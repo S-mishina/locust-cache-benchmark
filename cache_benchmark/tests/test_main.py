@@ -16,6 +16,7 @@ class TestMain(unittest.TestCase):
 
     def _make_args(self, **overrides):
         args = MagicMock()
+        args.config = None
         args.fqdn = "localhost"
         args.port = 6379
         args.ssl = "false"
