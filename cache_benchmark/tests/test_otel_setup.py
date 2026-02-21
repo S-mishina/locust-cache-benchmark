@@ -267,8 +267,9 @@ class TestOtelTracingEndpointWarning(unittest.TestCase):
         otel_setup._otel_initialized = False
         otel_setup._metrics_initialized = False
         reset_config()
+        self.addCleanup(self._cleanup)
 
-    def tearDown(self):
+    def _cleanup(self):
         otel_setup._otel_initialized = False
         otel_setup._metrics_initialized = False
         reset_config()
