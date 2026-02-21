@@ -1,11 +1,14 @@
 import json
 import os
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 from pydantic import ValidationError
 from cache_benchmark.config import (
     AppConfig,
     get_config, set_config, reset_config, _strtobool,
+    YamlConfig, ConnectionYaml, LoadtestYaml, RetryYaml, OtelYaml, RunnerYaml,
+    _load_yaml_config, _flatten_yaml_config,
 )
 
 
@@ -62,6 +65,7 @@ class TestAppConfig(unittest.TestCase):
     @patch.dict(os.environ, {}, clear=True)
     def test_from_args(self):
         args = Mock()
+        args.config = None
         args.fqdn = "redis.example.com"
         args.port = 6380
         args.ssl = "true"
@@ -126,6 +130,7 @@ class TestFromArgsEnvOverride(unittest.TestCase):
 
     def _make_default_args(self):
         args = Mock()
+        args.config = None
         args.fqdn = "localhost"
         args.port = 6379
         args.ssl = "false"
@@ -363,6 +368,7 @@ class TestAuthSslEnvOverride(unittest.TestCase):
 
     def _make_default_args(self):
         args = Mock()
+        args.config = None
         args.fqdn = "localhost"
         args.port = 6379
         args.ssl = "false"
@@ -431,6 +437,291 @@ class TestSingleton(unittest.TestCase):
         reset_config()
         with self.assertRaises(RuntimeError):
             get_config()
+
+
+# --- YAML Schema ---
+
+class TestYamlSchema(unittest.TestCase):
+    def test_valid_full_config(self):
+        data = {
+            "cache_type": "redis",
+            "connection": {
+                "host": "redis.example.com",
+                "port": 6379,
+                "ssl": True,
+                "ssl_cert_reqs": "required",
+                "ssl_ca_certs": "/path/to/ca.pem",
+                "username": "myuser",
+                "password": "mypass",
+                "timeout": 2,
+                "pool_size": 20,
+            },
+            "loadtest": {
+                "hit_rate": 0.8,
+                "value_size": 10,
+                "ttl": 300,
+                "request_rate": 5.0,
+                "set_keys": 1000,
+            },
+            "retry": {"attempts": 5, "wait": 3},
+            "opentelemetry": {
+                "tracing_enabled": True,
+                "metrics_enabled": True,
+                "exporter_endpoint": "http://otel:4317",
+                "service_name": "my-benchmark",
+            },
+            "runner": {
+                "duration": 120,
+                "connections": 10,
+                "spawn_rate": 5,
+                "cluster_mode": "master",
+                "master_bind_host": "0.0.0.0",
+                "master_bind_port": 5557,
+                "num_workers": 3,
+            },
+        }
+        cfg = YamlConfig.model_validate(data)
+        self.assertEqual(cfg.cache_type, "redis")
+        self.assertEqual(cfg.connection.host, "redis.example.com")
+        self.assertEqual(cfg.loadtest.hit_rate, 0.8)
+        self.assertEqual(cfg.retry.attempts, 5)
+        self.assertTrue(cfg.opentelemetry.tracing_enabled)
+        self.assertEqual(cfg.runner.duration, 120)
+
+    def test_partial_config(self):
+        data = {
+            "connection": {"host": "myhost", "port": 7000},
+        }
+        cfg = YamlConfig.model_validate(data)
+        self.assertEqual(cfg.connection.host, "myhost")
+        self.assertEqual(cfg.connection.port, 7000)
+        self.assertIsNone(cfg.cache_type)
+        self.assertIsNone(cfg.loadtest)
+
+    def test_unknown_section_rejected(self):
+        data = {"unknown_section": {"key": "value"}}
+        with self.assertRaises(ValidationError):
+            YamlConfig.model_validate(data)
+
+    def test_unknown_key_rejected(self):
+        data = {"connection": {"host": "myhost", "unknown_key": "value"}}
+        with self.assertRaises(ValidationError):
+            YamlConfig.model_validate(data)
+
+    def test_empty_config(self):
+        cfg = YamlConfig.model_validate({})
+        self.assertIsNone(cfg.cache_type)
+        self.assertIsNone(cfg.connection)
+        self.assertIsNone(cfg.loadtest)
+        self.assertIsNone(cfg.retry)
+        self.assertIsNone(cfg.opentelemetry)
+        self.assertIsNone(cfg.runner)
+
+
+# --- YAML Integration ---
+
+class TestFromArgsYamlConfig(unittest.TestCase):
+
+    def _write_yaml(self, data):
+        """Write YAML data to a temp file and return the path."""
+        f = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False, encoding="utf-8",
+        )
+        import yaml
+        yaml.dump(data, f, default_flow_style=False)
+        f.close()
+        return f.name
+
+    def _make_config_args(self, config_path):
+        args = Mock()
+        args.config = config_path
+        return args
+
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("cache_benchmark.config.sys")
+    def test_yaml_values_used(self, mock_sys):
+        mock_sys.argv = ["prog", "--config", "test.yaml"]
+        mock_sys.exit = Mock(side_effect=SystemExit)
+
+        yaml_data = {
+            "connection": {"host": "yaml-host", "port": 7000},
+            "loadtest": {"hit_rate": 0.9, "ttl": 300},
+        }
+        path = self._write_yaml(yaml_data)
+        try:
+            args = self._make_config_args(path)
+            config = AppConfig.from_args(args, cache_type="redis_cluster")
+            self.assertEqual(config.cache_host, "yaml-host")
+            self.assertEqual(config.cache_port, 7000)
+            self.assertEqual(config.hit_rate, 0.9)
+            self.assertEqual(config.ttl, 300)
+        finally:
+            os.unlink(path)
+
+    @patch.dict(os.environ, {"CACHE_HOST": "env-host"}, clear=True)
+    @patch("cache_benchmark.config.sys")
+    def test_env_overrides_yaml(self, mock_sys):
+        mock_sys.argv = ["prog", "--config", "test.yaml"]
+        mock_sys.exit = Mock(side_effect=SystemExit)
+
+        yaml_data = {
+            "connection": {"host": "yaml-host", "port": 7000},
+        }
+        path = self._write_yaml(yaml_data)
+        try:
+            args = self._make_config_args(path)
+            config = AppConfig.from_args(args, cache_type="redis_cluster")
+            self.assertEqual(config.cache_host, "env-host")
+            self.assertEqual(config.cache_port, 7000)
+        finally:
+            os.unlink(path)
+
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("cache_benchmark.config.sys")
+    def test_pydantic_default_when_yaml_omits(self, mock_sys):
+        mock_sys.argv = ["prog", "--config", "test.yaml"]
+        mock_sys.exit = Mock(side_effect=SystemExit)
+
+        yaml_data = {"connection": {"host": "yaml-host"}}
+        path = self._write_yaml(yaml_data)
+        try:
+            args = self._make_config_args(path)
+            config = AppConfig.from_args(args, cache_type="redis_cluster")
+            self.assertEqual(config.cache_host, "yaml-host")
+            self.assertEqual(config.cache_port, 6379)  # Pydantic default
+            self.assertEqual(config.ttl, 60)  # Pydantic default
+        finally:
+            os.unlink(path)
+
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("cache_benchmark.config.sys")
+    def test_empty_yaml_file(self, mock_sys):
+        mock_sys.argv = ["prog", "--config", "test.yaml"]
+        mock_sys.exit = Mock(side_effect=SystemExit)
+
+        path = self._write_yaml({})
+        try:
+            args = self._make_config_args(path)
+            config = AppConfig.from_args(args, cache_type="redis_cluster")
+            self.assertEqual(config.cache_host, "localhost")
+            self.assertEqual(config.cache_port, 6379)
+            self.assertEqual(config.cache_type, "redis_cluster")
+        finally:
+            os.unlink(path)
+
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("cache_benchmark.config.sys")
+    def test_yaml_cache_type(self, mock_sys):
+        mock_sys.argv = ["prog", "--config", "test.yaml"]
+        mock_sys.exit = Mock(side_effect=SystemExit)
+
+        yaml_data = {"cache_type": "valkey"}
+        path = self._write_yaml(yaml_data)
+        try:
+            args = self._make_config_args(path)
+            config = AppConfig.from_args(args, cache_type="redis_cluster")
+            self.assertEqual(config.cache_type, "valkey")
+        finally:
+            os.unlink(path)
+
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("cache_benchmark.config.sys")
+    def test_config_with_cli_params_exits(self, mock_sys):
+        mock_sys.argv = ["prog", "--config", "test.yaml", "--port", "7000"]
+        mock_sys.exit = Mock(side_effect=SystemExit)
+
+        yaml_data = {"connection": {"host": "yaml-host"}}
+        path = self._write_yaml(yaml_data)
+        try:
+            args = self._make_config_args(path)
+            with self.assertRaises(SystemExit):
+                AppConfig.from_args(args, cache_type="redis_cluster")
+            mock_sys.exit.assert_called_with(1)
+        finally:
+            os.unlink(path)
+
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("cache_benchmark.config.sys")
+    def test_yaml_file_not_found(self, mock_sys):
+        mock_sys.argv = ["prog", "--config", "/nonexistent/config.yaml"]
+        mock_sys.exit = Mock(side_effect=SystemExit)
+
+        args = self._make_config_args("/nonexistent/config.yaml")
+        with self.assertRaises(SystemExit):
+            AppConfig.from_args(args, cache_type="redis_cluster")
+        mock_sys.exit.assert_called_with(1)
+
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("cache_benchmark.config.sys")
+    def test_yaml_invalid_syntax(self, mock_sys):
+        mock_sys.argv = ["prog", "--config", "test.yaml"]
+        mock_sys.exit = Mock(side_effect=SystemExit)
+
+        f = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False, encoding="utf-8",
+        )
+        f.write("invalid: yaml: content: [")
+        f.close()
+        try:
+            args = self._make_config_args(f.name)
+            with self.assertRaises(SystemExit):
+                AppConfig.from_args(args, cache_type="redis_cluster")
+            mock_sys.exit.assert_called_with(1)
+        finally:
+            os.unlink(f.name)
+
+    @patch.dict(os.environ, {}, clear=True)
+    @patch("cache_benchmark.config.sys")
+    def test_yaml_validation_error(self, mock_sys):
+        mock_sys.argv = ["prog", "--config", "test.yaml"]
+        mock_sys.exit = Mock(side_effect=SystemExit)
+
+        yaml_data = {"connection": {"host": "myhost", "unknown_key": "value"}}
+        path = self._write_yaml(yaml_data)
+        try:
+            args = self._make_config_args(path)
+            with self.assertRaises(SystemExit):
+                AppConfig.from_args(args, cache_type="redis_cluster")
+            mock_sys.exit.assert_called_with(1)
+        finally:
+            os.unlink(path)
+
+    @patch.dict(os.environ, {}, clear=True)
+    def test_no_config_uses_original_behavior(self):
+        args = Mock()
+        args.config = None
+        args.fqdn = "cli-host"
+        args.port = 9999
+        args.ssl = "false"
+        args.query_timeout = 1
+        args.connections_pool = 10
+        args.hit_rate = 0.5
+        args.value_size = 1
+        args.ttl = 60
+        args.request_rate = 1.0
+        args.set_keys = 1000
+        args.retry_count = 3
+        args.retry_wait = 2
+        args.otel_tracing_enabled = "false"
+        args.otel_exporter_endpoint = "http://localhost:4317"
+        args.otel_service_name = "locust-cache-benchmark"
+        args.otel_metrics_enabled = "false"
+        args.duration = 60
+        args.connections = 1
+        args.spawn_rate = 1
+        args.cluster_mode = None
+        args.master_bind_host = "127.0.0.1"
+        args.master_bind_port = 5557
+        args.num_workers = 1
+        args.cache_username = None
+        args.cache_password = None
+        args.ssl_cert_reqs = None
+        args.ssl_ca_certs = None
+
+        config = AppConfig.from_args(args, cache_type="redis_cluster")
+        self.assertEqual(config.cache_host, "cli-host")
+        self.assertEqual(config.cache_port, 9999)
+        self.assertEqual(config.cache_type, "redis_cluster")
 
 
 if __name__ == "__main__":

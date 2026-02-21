@@ -1,0 +1,10 @@
+connection:
+  host: "127.0.0.1"
+  port: 6379
+runner:
+  duration: 5
+  connections: 1
+  spawn_rate: 1
+loadtest:
+  value_size: 1
+  ttl: 60

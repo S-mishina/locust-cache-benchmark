@@ -1,0 +1,5 @@
+connection:
+  host: "wrong-host"
+  port: 6379
+loadtest:
+  set_keys: 5

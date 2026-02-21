@@ -34,6 +34,7 @@ idna = "^3.10"
 packaging = "^25.0"
 typing_extensions = "^4.13.2"
 pydantic = "^2.12.5"
+PyYAML = ">=6.0.1"
 pydantic-settings = "^2.13.0"
 python-json-logger = "^3.2.1"
 
@@ -51,3 +52,6 @@ testpaths = ["cache_benchmark/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+markers = [
+    "e2e: End-to-end tests requiring Docker (redis container)",
+]

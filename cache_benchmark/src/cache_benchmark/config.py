@@ -1,8 +1,12 @@
 import json
+import logging
 import os
+import sys
+from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+import yaml
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 
 def _strtobool(val):
@@ -55,6 +59,171 @@ _FIELD_ENV_OVERRIDE: dict[str, str] = {
 def _env_key(field_name: str) -> str:
     """Return the environment variable name for a given field name."""
     return _FIELD_ENV_OVERRIDE.get(field_name, field_name.upper())
+
+
+# ── YAML schema models ─────────────────────────────────────
+
+logger = logging.getLogger(__name__)
+
+
+class ConnectionYaml(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    host: Optional[str] = None
+    port: Optional[int] = None
+    ssl: Optional[bool] = None
+    ssl_cert_reqs: Optional[Literal["none", "optional", "required"]] = None
+    ssl_ca_certs: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    timeout: Optional[int] = None
+    pool_size: Optional[int] = None
+
+
+class LoadtestYaml(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    hit_rate: Optional[float] = None
+    value_size: Optional[int] = None
+    ttl: Optional[int] = None
+    request_rate: Optional[float] = None
+    set_keys: Optional[int] = None
+
+
+class RetryYaml(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    attempts: Optional[int] = None
+    wait: Optional[int] = None
+
+
+class OtelYaml(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tracing_enabled: Optional[bool] = None
+    metrics_enabled: Optional[bool] = None
+    exporter_endpoint: Optional[str] = None
+    service_name: Optional[str] = None
+
+
+class RunnerYaml(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    duration: Optional[int] = None
+    connections: Optional[int] = None
+    spawn_rate: Optional[int] = None
+    cluster_mode: Optional[Literal["master", "worker"]] = None
+    master_bind_host: Optional[str] = None
+    master_bind_port: Optional[int] = None
+    num_workers: Optional[int] = None
+
+
+class YamlConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    cache_type: Optional[Literal["redis_cluster", "valkey_cluster", "redis", "valkey"]] = None
+    connection: Optional[ConnectionYaml] = None
+    loadtest: Optional[LoadtestYaml] = None
+    retry: Optional[RetryYaml] = None
+    opentelemetry: Optional[OtelYaml] = None
+    runner: Optional[RunnerYaml] = None
+
+
+# ── Short flag → argparse dest name (for exclusive check) ──
+_SHORT_FLAG_TO_DEST: dict[str, str] = {
+    "-f": "fqdn", "-p": "port", "-x": "ssl", "-q": "query_timeout",
+    "-r": "hit_rate", "-d": "duration", "-c": "connections", "-n": "spawn_rate",
+    "-k": "value_size", "-t": "ttl", "-l": "connections_pool",
+    "-rc": "retry_count", "-rw": "retry_wait", "-s": "set_keys",
+    "-cm": "cluster_mode", "-mbh": "master_bind_host", "-mbp": "master_bind_port",
+    "-nw": "num_workers", "-rr": "request_rate",
+}
+
+# (section_attr, yaml_field) → AppConfig field name
+_YAML_TO_APPCONFIG: list[tuple[str, str, str]] = [
+    ("connection", "host", "cache_host"),
+    ("connection", "port", "cache_port"),
+    ("connection", "ssl", "ssl"),
+    ("connection", "ssl_cert_reqs", "ssl_cert_reqs"),
+    ("connection", "ssl_ca_certs", "ssl_ca_certs"),
+    ("connection", "username", "cache_username"),
+    ("connection", "password", "cache_password"),
+    ("connection", "timeout", "query_timeout"),
+    ("connection", "pool_size", "connections_pool"),
+    ("loadtest", "hit_rate", "hit_rate"),
+    ("loadtest", "value_size", "value_size"),
+    ("loadtest", "ttl", "ttl"),
+    ("loadtest", "request_rate", "request_rate"),
+    ("loadtest", "set_keys", "set_keys"),
+    ("retry", "attempts", "retry_attempts"),
+    ("retry", "wait", "retry_wait"),
+    ("opentelemetry", "tracing_enabled", "otel_tracing_enabled"),
+    ("opentelemetry", "metrics_enabled", "otel_metrics_enabled"),
+    ("opentelemetry", "exporter_endpoint", "otel_exporter_endpoint"),
+    ("opentelemetry", "service_name", "otel_service_name"),
+    ("runner", "duration", "duration"),
+    ("runner", "connections", "connections"),
+    ("runner", "spawn_rate", "spawn_rate"),
+    ("runner", "cluster_mode", "cluster_mode"),
+    ("runner", "master_bind_host", "master_bind_host"),
+    ("runner", "master_bind_port", "master_bind_port"),
+    ("runner", "num_workers", "num_workers"),
+]
+
+
+def _load_yaml_config(path: str) -> YamlConfig:
+    """Load a YAML file and return a YamlConfig. Calls sys.exit(1) on error."""
+    config_path = Path(path)
+    try:
+        with config_path.open("r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+    except FileNotFoundError:
+        logger.error("Config file not found: %s", path)
+        sys.exit(1)
+    except yaml.YAMLError as e:
+        logger.error("Invalid YAML in config file %s: %s", path, e)
+        sys.exit(1)
+
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        logger.error(
+            "Config file %s must contain a YAML mapping, got %s",
+            path, type(data).__name__,
+        )
+        sys.exit(1)
+
+    try:
+        return YamlConfig.model_validate(data)
+    except ValidationError as e:
+        logger.error("Config file %s validation error:\n%s", path, e)
+        sys.exit(1)
+
+
+def _flatten_yaml_config(cfg: YamlConfig) -> dict:
+    """Convert YamlConfig to a flat dict of AppConfig field names."""
+    flat: dict = {}
+    if cfg.cache_type is not None:
+        flat["cache_type"] = cfg.cache_type
+    for section_attr, yaml_field, appconfig_field in _YAML_TO_APPCONFIG:
+        section = getattr(cfg, section_attr, None)
+        if section is not None:
+            val = getattr(section, yaml_field, None)
+            if val is not None:
+                flat[appconfig_field] = val
+    return flat
+
+
+def _detect_explicit_args() -> set[str]:
+    """Scan sys.argv for explicitly provided CLI args (excluding --config/-C)."""
+    explicit: set[str] = set()
+    for token in sys.argv[1:]:
+        if not token.startswith("-"):
+            continue
+        flag = token.split("=")[0]
+        if flag in ("--config", "-C"):
+            continue
+        if flag.startswith("--"):
+            dest = flag[2:].replace("-", "_")
+            if dest in _ARG_MAP:
+                explicit.add(dest)
+        elif flag in _SHORT_FLAG_TO_DEST:
+            explicit.add(_SHORT_FLAG_TO_DEST[flag])
+    return explicit
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -225,8 +394,51 @@ class AppConfig(BaseModel):
     # ── Factory: CLI args + env vars ─────────────────────────
 
     @classmethod
+    def _from_yaml(cls, config_path: str, cache_type: str) -> "AppConfig":
+        """Build config from YAML with priority: env var > YAML > default."""
+        explicit = _detect_explicit_args()
+        if explicit:
+            logger.error(
+                "Cannot use --config with other CLI parameters. "
+                "Conflicting parameters: %s",
+                ", ".join(f"--{a.replace('_', '-')}" for a in sorted(explicit)),
+            )
+            sys.exit(1)
+
+        yaml_cfg = _load_yaml_config(config_path)
+        yaml_flat = _flatten_yaml_config(yaml_cfg)
+
+        kwargs: dict = {}
+        env_cache = os.environ.get("CACHE_TYPE")
+        if env_cache is not None:
+            kwargs["cache_type"] = env_cache
+        elif "cache_type" in yaml_flat:
+            kwargs["cache_type"] = yaml_flat["cache_type"]
+        else:
+            kwargs["cache_type"] = cache_type
+
+        for arg_name, field_name in _ARG_MAP.items():
+            env_val = os.environ.get(_env_key(field_name))
+            yaml_val = yaml_flat.get(field_name)
+            if env_val is not None:
+                kwargs[field_name] = env_val
+            elif yaml_val is not None:
+                kwargs[field_name] = yaml_val
+
+        return cls(**kwargs)
+
+    @classmethod
     def from_args(cls, args, cache_type: str = "redis_cluster") -> "AppConfig":
-        """Build config with priority: env var > CLI arg > default."""
+        """Build config with priority: env var > CLI arg > default.
+
+        When --config is provided, uses YAML mode: env var > YAML > default.
+        --config cannot be used with other CLI parameters.
+        """
+        config_path = getattr(args, "config", None)
+        if config_path is not None:
+            return cls._from_yaml(config_path, cache_type)
+
+        # Existing behavior (no changes): ENV > CLI > Pydantic default
         kwargs: dict = {}
 
         # cache_type (determined by subcommand, not CLI arg)
