@@ -394,6 +394,40 @@ class AppConfig(BaseModel):
     # ── Factory: CLI args + env vars ─────────────────────────
 
     @classmethod
+    def _from_yaml(cls, config_path: str, cache_type: str) -> "AppConfig":
+        """Build config from YAML with priority: env var > YAML > default."""
+        explicit = _detect_explicit_args()
+        if explicit:
+            logger.error(
+                "Cannot use --config with other CLI parameters. "
+                "Conflicting parameters: %s",
+                ", ".join(f"--{a.replace('_', '-')}" for a in sorted(explicit)),
+            )
+            sys.exit(1)
+
+        yaml_cfg = _load_yaml_config(config_path)
+        yaml_flat = _flatten_yaml_config(yaml_cfg)
+
+        kwargs: dict = {}
+        env_cache = os.environ.get("CACHE_TYPE")
+        if env_cache is not None:
+            kwargs["cache_type"] = env_cache
+        elif "cache_type" in yaml_flat:
+            kwargs["cache_type"] = yaml_flat["cache_type"]
+        else:
+            kwargs["cache_type"] = cache_type
+
+        for arg_name, field_name in _ARG_MAP.items():
+            env_val = os.environ.get(_env_key(field_name))
+            yaml_val = yaml_flat.get(field_name)
+            if env_val is not None:
+                kwargs[field_name] = env_val
+            elif yaml_val is not None:
+                kwargs[field_name] = yaml_val
+
+        return cls(**kwargs)
+
+    @classmethod
     def from_args(cls, args, cache_type: str = "redis_cluster") -> "AppConfig":
         """Build config with priority: env var > CLI arg > default.
 
@@ -401,40 +435,8 @@ class AppConfig(BaseModel):
         --config cannot be used with other CLI parameters.
         """
         config_path = getattr(args, "config", None)
-
         if config_path is not None:
-            # Exclusive check: --config cannot be used with other CLI params
-            explicit = _detect_explicit_args()
-            if explicit:
-                logger.error(
-                    "Cannot use --config with other CLI parameters. "
-                    "Conflicting parameters: %s",
-                    ", ".join(f"--{a.replace('_', '-')}" for a in sorted(explicit)),
-                )
-                sys.exit(1)
-
-            # YAML mode: ENV > YAML > Pydantic default
-            yaml_cfg = _load_yaml_config(config_path)
-            yaml_flat = _flatten_yaml_config(yaml_cfg)
-
-            kwargs: dict = {}
-            env_cache = os.environ.get("CACHE_TYPE")
-            if env_cache is not None:
-                kwargs["cache_type"] = env_cache
-            elif "cache_type" in yaml_flat:
-                kwargs["cache_type"] = yaml_flat["cache_type"]
-            else:
-                kwargs["cache_type"] = cache_type
-
-            for arg_name, field_name in _ARG_MAP.items():
-                env_val = os.environ.get(_env_key(field_name))
-                yaml_val = yaml_flat.get(field_name)
-                if env_val is not None:
-                    kwargs[field_name] = env_val
-                elif yaml_val is not None:
-                    kwargs[field_name] = yaml_val
-
-            return cls(**kwargs)
+            return cls._from_yaml(config_path, cache_type)
 
         # Existing behavior (no changes): ENV > CLI > Pydantic default
         kwargs: dict = {}
