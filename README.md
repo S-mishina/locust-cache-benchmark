@@ -43,6 +43,9 @@ deployments.
   Locust master/worker mode
 - Supports [OpenTelemetry](https://opentelemetry.io/)
   tracing for Redis operations via auto-instrumentation
+- Supports [OpenTelemetry](https://opentelemetry.io/)
+  native metrics for Redis via redis-py observability
+  (command duration, connection pool, error counts)
 
 ## Supported Environments
 
@@ -333,11 +336,12 @@ A sample Kubernetes Job manifest is available at
 
 ### OpenTelemetry Parameters
 
-| Parameter                  | Type | Default                  | Description                  |
-| -------------------------- | ---- | ------------------------ | ---------------------------- |
-| `--otel-tracing-enabled`   | str  | `false`                  | Enable OpenTelemetry tracing |
-| `--otel-exporter-endpoint` | str  | `http://localhost:4317`  | OTLP gRPC exporter endpoint  |
-| `--otel-service-name`      | str  | `locust-cache-benchmark` | OpenTelemetry service name   |
+| Parameter                  | Type | Default                  | Description                                               |
+| -------------------------- | ---- | ------------------------ | --------------------------------------------------------- |
+| `--otel-tracing-enabled`   | str  | `false`                  | Enable OpenTelemetry tracing                              |
+| `--otel-metrics-enabled`   | str  | `false`                  | Enable redis-py native OpenTelemetry metrics (Redis only) |
+| `--otel-exporter-endpoint` | str  | `http://localhost:4317`  | OTLP gRPC exporter endpoint                               |
+| `--otel-service-name`      | str  | `locust-cache-benchmark` | OpenTelemetry service name                                |
 
 ### Distributed Mode Parameters
 
@@ -391,5 +395,48 @@ the `spanmetrics` connector for Prometheus.
 > For Valkey, manual spans are used since
 > `RedisInstrumentor` does not instrument the
 > valkey-py client.
+
+### OpenTelemetry native metrics (Redis only)
+
+In addition to tracing, this tool supports
+redis-py v7.2 native
+[OpenTelemetry](https://opentelemetry.io/) metrics
+via the `redis.observability` module.
+When enabled, the following metrics are automatically
+collected and exported via OTLP gRPC:
+
+| Metric name                        | Type      | Description              |
+| ---------------------------------- | --------- | ------------------------ |
+| `db.client.operation.duration`     | Histogram | Command execution time   |
+| `db.client.connection.create_time` | Histogram | Connection creation time |
+| `db.client.connection.count`       | Gauge     | Current connection count |
+| `redis.client.errors`              | Counter   | Error count              |
+
+To enable metrics, pass `--otel-metrics-enabled true`:
+
+```sh
+locust_cache_benchmark loadtest local redis \
+  -f <hostname> -p <port> \
+  -r <hit_rate> -d <duration> \
+  -c <connections> -n <spawn_rate> \
+  -k <value_size> -t <ttl> \
+  -rr <request_rate> \
+  --otel-metrics-enabled true \
+  --otel-exporter-endpoint http://localhost:4317 \
+  --otel-service-name my-benchmark
+```
+
+Tracing and metrics can be enabled independently
+or together:
+
+```sh
+  --otel-tracing-enabled true \
+  --otel-metrics-enabled true
+```
+
+> **Note:** Native metrics are only supported for
+> Redis backends (`redis`, `redis_cluster`).
+> When using Valkey backends, the metrics flag is
+> automatically skipped with a warning log.
 
 [redis-bench]: https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/

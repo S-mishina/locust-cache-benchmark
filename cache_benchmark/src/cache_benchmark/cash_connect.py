@@ -61,7 +61,7 @@ class CacheConnect:
             conn = RedisCluster(
                 startup_nodes=startup_nodes,
                 decode_responses=True,
-                timeout=int(query_timeout),
+                socket_timeout=int(query_timeout),
                 ssl=ssl,
                 max_connections=pool_size,
                 retry=Retry(ExponentialBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
@@ -167,7 +167,7 @@ class CacheConnect:
             conn = ValkeyCluster(
                 startup_nodes=startup_nodes,
                 decode_responses=True,
-                timeout=int(query_timeout),
+                socket_timeout=int(query_timeout),
                 ssl=ssl,
                 max_connections=pool_size,
                 cluster_error_retry_attempts=retry_attempts,

@@ -31,6 +31,7 @@ class TestMain(unittest.TestCase):
         args.otel_tracing_enabled = "false"
         args.otel_exporter_endpoint = "http://localhost:4317"
         args.otel_service_name = "locust-cache-benchmark"
+        args.otel_metrics_enabled = "false"
         args.duration = 60
         args.connections = 1
         args.spawn_rate = 1

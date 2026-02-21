@@ -144,6 +144,13 @@ def add_common_arguments(parser):
         help="Enable OpenTelemetry tracing (default: false)."
     )
     group.add_argument(
+        "--otel-metrics-enabled",
+        type=str,
+        required=False,
+        default="false",
+        help="Enable redis-py native OpenTelemetry metrics (default: false). Only supported for Redis backends.",
+    )
+    group.add_argument(
         "--otel-exporter-endpoint",
         type=str,
         required=False,

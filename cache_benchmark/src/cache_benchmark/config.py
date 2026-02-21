@@ -30,6 +30,7 @@ _ARG_MAP: dict[str, str] = {
     "retry_count": "retry_attempts",
     "retry_wait": "retry_wait",
     "otel_tracing_enabled": "otel_tracing_enabled",
+    "otel_metrics_enabled": "otel_metrics_enabled",
     "otel_exporter_endpoint": "otel_exporter_endpoint",
     "otel_service_name": "otel_service_name",
     "duration": "duration",
@@ -164,6 +165,10 @@ class AppConfig(BaseModel):
         default="locust-cache-benchmark",
         description="OpenTelemetry service name",
     )
+    otel_metrics_enabled: bool = Field(
+        default=False,
+        description="Enable redis-py native OpenTelemetry metrics (Redis only, not Valkey)",
+    )
 
     # ── Locust runner ───────────────────────────────────────
     duration: int = Field(
@@ -202,7 +207,7 @@ class AppConfig(BaseModel):
 
     # ── Validators ──────────────────────────────────────────
 
-    @field_validator("ssl", "otel_tracing_enabled", mode="before")
+    @field_validator("ssl", "otel_tracing_enabled", "otel_metrics_enabled", mode="before")
     @classmethod
     def _coerce_bool(cls, v):
         if isinstance(v, str):
