@@ -14,7 +14,7 @@ locust_cache_benchmark = "cache_benchmark.main:main"
 [tool.poetry.dependencies]
 python = "^3.10"
 locust = "^2.37.3"
-redis = "^6.1.0"
+redis = "^7.0.0"
 valkey = "^6.1.0"
 gevent = "^25.0.0"
 psutil = "^7.0.0"
