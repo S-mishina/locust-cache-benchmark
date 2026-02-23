@@ -2,11 +2,14 @@ import csv
 import logging
 import sys
 import gevent
+from opentelemetry import trace
 from locust.env import Environment
 from locust.runners import LocalRunner, MasterRunner, WorkerRunner
 from locust import constant_throughput
 import time
 from cache_benchmark.otel_setup import setup_otel_tracing, shutdown_otel_tracing
+
+_tracer = trace.get_tracer("locust-cache-benchmark")
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +38,18 @@ def init_cache_set(cache_client, value, ttl, set_keys=1000):
     if cache_client is not None:
         logger.info("Redis client initialized successfully.")
         logger.info(f"Populating cache with {set_keys} keys...")
-        for i in range(1, set_keys + 1):
-            key = f"key_{i}"
-            if cache_client.get(key) is None:
-                cache_client.set(key, value, ex=int(ttl))
+        with _tracer.start_as_current_span("init_cache_set", kind=trace.SpanKind.CLIENT) as span:
+            span.set_attribute("cache.set_keys", set_keys)
+            try:
+                for i in range(1, set_keys + 1):
+                    key = f"key_{i}"
+                    if cache_client.get(key) is None:
+                        cache_client.set(key, value, ex=int(ttl))
+            except Exception as e:
+                span.record_exception(e)
+                span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                logger.error(f"Error during cache initialization: {e}")
+                sys.exit(1)
         logger.info("Success")
     else:
         logger.error("Cache client initialization failed.")

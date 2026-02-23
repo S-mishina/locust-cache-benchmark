@@ -9,10 +9,13 @@ logger = logging.getLogger(__name__)
 from locust import User, TaskSet, task, constant_throughput
 from cache_benchmark.locust_cache import LocustCache
 from cache_benchmark.utils import generate_string
+from opentelemetry import trace
 from cache_benchmark.cash_connect import CacheConnect
 from cache_benchmark.config import get_config
 import random
 import time
+
+_tracer = trace.get_tracer("locust-cache-benchmark")
 
 class RedisTaskSet(TaskSet):
     total_requests = 0
@@ -100,12 +103,14 @@ class RedisUser(User):
     def on_start(self):
         """Acquire shared connection at user startup"""
         self._connected = False
-        self.cache_conn = self.__class__._get_shared_connection()
-        if self.cache_conn:
-            self._connected = True
-            logger.info(f"User {id(self)} connected successfully (shared)")
-        else:
-            logger.error(f"User {id(self)} connection failed")
+        with _tracer.start_as_current_span("user_connect", kind=trace.SpanKind.CLIENT) as span:
+            self.cache_conn = self.__class__._get_shared_connection()
+            if self.cache_conn:
+                self._connected = True
+                logger.info(f"User {id(self)} connected successfully (shared)")
+            else:
+                span.set_status(trace.Status(trace.StatusCode.ERROR, "connection failed"))
+                logger.error(f"User {id(self)} connection failed")
 
     def on_stop(self):
         """Release shared connection reference when user exits"""

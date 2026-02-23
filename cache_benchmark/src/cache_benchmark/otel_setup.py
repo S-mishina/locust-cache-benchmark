@@ -112,6 +112,45 @@ def shutdown_otel_metrics():
         return False
 
 
+_valkey_instrumented = False
+
+
+def _instrument_valkey():
+    """
+    Instrument valkey-py to produce spans equivalent to RedisInstrumentor.
+
+    Wraps execute_command on Valkey and ValkeyCluster so that each command
+    (GET, SET, PING, etc.) generates a span with db.system=valkey.
+    """
+    global _valkey_instrumented
+    if _valkey_instrumented:
+        return
+
+    from valkey import Valkey
+    from valkey.cluster import ValkeyCluster
+
+    _tracer = trace.get_tracer("locust-cache-benchmark")
+
+    def _wrap(original):
+        def wrapper(self, *args, **kwargs):
+            command = args[0] if args else "UNKNOWN"
+            with _tracer.start_as_current_span(command, kind=trace.SpanKind.CLIENT) as span:
+                span.set_attribute("db.system", "valkey")
+                span.set_attribute("db.statement", " ".join(str(a) for a in args))
+                try:
+                    return original(self, *args, **kwargs)
+                except Exception as e:
+                    span.record_exception(e)
+                    span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                    raise
+        return wrapper
+
+    Valkey.execute_command = _wrap(Valkey.execute_command)
+    ValkeyCluster.execute_command = _wrap(ValkeyCluster.execute_command)
+    _valkey_instrumented = True
+    logger.info("Valkey command tracing instrumented.")
+
+
 def setup_otel_tracing():
     """
     Initialize OpenTelemetry tracing with RedisInstrumentor.
@@ -119,7 +158,8 @@ def setup_otel_tracing():
     Reads otel_tracing_enabled from AppConfig to determine
     whether to enable tracing. When enabled, configures a
     TracerProvider with BatchSpanProcessor and OTLPSpanExporter,
-    then instruments redis-py via RedisInstrumentor.
+    then instruments redis-py via RedisInstrumentor and
+    valkey-py via _instrument_valkey().
 
     After tracing setup, also attempts to initialize native metrics
     via setup_otel_metrics().
@@ -160,6 +200,7 @@ def setup_otel_tracing():
         trace.set_tracer_provider(provider)
 
         RedisInstrumentor().instrument()
+        _instrument_valkey()
 
         _otel_initialized = True
         logger.info(

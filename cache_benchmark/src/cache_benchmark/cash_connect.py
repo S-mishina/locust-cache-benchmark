@@ -8,10 +8,12 @@ from valkey.cluster import ValkeyCluster as ValkeyCluster, ClusterNode as Valley
 from valkey.exceptions import ConnectionError as ValkeyConnectionError, TimeoutError as ValkeyTimeoutError
 from valkey.retry import Retry as ValkeyRetry
 from valkey.backoff import EqualJitterBackoff
+from opentelemetry import trace
 from cache_benchmark.config import get_config
 import logging
 
 logger = logging.getLogger(__name__)
+_tracer = trace.get_tracer("locust-cache-benchmark")
 
 
 class CacheConnect:
@@ -57,34 +59,30 @@ class CacheConnect:
         startup_nodes = [
             ClusterNode(cache_host, int(cache_port))
         ]
-        try:
-            conn = RedisCluster(
-                startup_nodes=startup_nodes,
-                decode_responses=True,
-                socket_timeout=int(query_timeout),
-                ssl=ssl,
-                max_connections=pool_size,
-                retry=Retry(ExponentialBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
-                # Facilitates reuse of connections
-                connection_pool_kwargs={
-                    'socket_keepalive': True,
-                    'socket_keepalive_options': {},
-                },
-                **extra_kwargs,
-            )
-            logger.info("Redis connection established successfully")
-        except ClusterDownError as e:
-            logger.error(f"Cluster is down. Retrying...: {e}")
-            conn = None
-        except TimeoutError as e:
-            logger.error(f"Timeout error during Redis initialization: {e}")
-            conn = None
-        except ConnectionError as e:
-            logger.error(f"Connection error: {e}")
-            conn = None
-        except Exception as e:
-            logger.error(f"Unexpected error during Redis initialization: {e}")
-            conn = None
+        with _tracer.start_as_current_span("redis_cluster_connect", kind=trace.SpanKind.CLIENT) as span:
+            span.set_attribute("db.system", "redis")
+            span.set_attribute("net.peer.name", cache_host)
+            span.set_attribute("net.peer.port", int(cache_port))
+            try:
+                conn = RedisCluster(
+                    startup_nodes=startup_nodes,
+                    decode_responses=True,
+                    socket_timeout=int(query_timeout),
+                    ssl=ssl,
+                    max_connections=pool_size,
+                    retry=Retry(ExponentialBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
+                    connection_pool_kwargs={
+                        'socket_keepalive': True,
+                        'socket_keepalive_options': {},
+                    },
+                    **extra_kwargs,
+                )
+                logger.info("Redis connection established successfully")
+            except (ClusterDownError, TimeoutError, ConnectionError, Exception) as e:
+                span.record_exception(e)
+                span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                logger.error(f"Redis cluster connection error: {e}")
+                conn = None
         return conn
 
     def redis_standalone_connect(self):
@@ -111,30 +109,30 @@ class CacheConnect:
             return None
 
         extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
-        try:
-            conn = Redis(
-                host=cache_host,
-                port=int(cache_port),
-                decode_responses=True,
-                socket_timeout=int(query_timeout),
-                ssl=ssl,
-                max_connections=pool_size,
-                socket_keepalive=True,
-                retry=Retry(ExponentialBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
-                retry_on_error=[ConnectionError, TimeoutError],
-                **extra_kwargs,
-            )
-            conn.ping()
-            logger.info("Redis standalone connection established successfully")
-        except TimeoutError as e:
-            logger.error(f"Timeout error during Redis standalone initialization: {e}")
-            conn = None
-        except ConnectionError as e:
-            logger.error(f"Connection error: {e}")
-            conn = None
-        except Exception as e:
-            logger.error(f"Unexpected error during Redis standalone initialization: {e}")
-            conn = None
+        with _tracer.start_as_current_span("redis_standalone_connect", kind=trace.SpanKind.CLIENT) as span:
+            span.set_attribute("db.system", "redis")
+            span.set_attribute("net.peer.name", cache_host)
+            span.set_attribute("net.peer.port", int(cache_port))
+            try:
+                conn = Redis(
+                    host=cache_host,
+                    port=int(cache_port),
+                    decode_responses=True,
+                    socket_timeout=int(query_timeout),
+                    ssl=ssl,
+                    max_connections=pool_size,
+                    socket_keepalive=True,
+                    retry=Retry(ExponentialBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
+                    retry_on_error=[ConnectionError, TimeoutError],
+                    **extra_kwargs,
+                )
+                conn.ping()
+                logger.info("Redis standalone connection established successfully")
+            except (TimeoutError, ConnectionError, Exception) as e:
+                span.record_exception(e)
+                span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                logger.error(f"Redis standalone connection error: {e}")
+                conn = None
         return conn
 
     def valkey_connect(self):
@@ -163,35 +161,31 @@ class CacheConnect:
         startup_nodes = [
             ValleyClusterNode(cache_host, int(cache_port))
         ]
-        try:
-            conn = ValkeyCluster(
-                startup_nodes=startup_nodes,
-                decode_responses=True,
-                socket_timeout=int(query_timeout),
-                ssl=ssl,
-                max_connections=pool_size,
-                cluster_error_retry_attempts=retry_attempts,
-                retry=ValkeyRetry(EqualJitterBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
-                # Facilitates reuse of connections
-                connection_pool_kwargs={
-                    'socket_keepalive': True,
-                    'socket_keepalive_options': {},
-                },
-                **extra_kwargs,
-            )
-            logger.info("Valkey connection established successfully")
-        except ValkeyClusterDownError as e:
-            logger.error(f"Cluster is down. Retrying...: {e}")
-            conn = None
-        except ValkeyTimeoutError as e:
-            logger.error(f"Timeout error during Valkey initialization: {e}")
-            conn = None
-        except ValkeyConnectionError as e:
-            logger.error(f"Connection error: {e}")
-            conn = None
-        except Exception as e:
-            logger.error(f"Unexpected error during Valkey initialization: {e}")
-            conn = None
+        with _tracer.start_as_current_span("valkey_cluster_connect", kind=trace.SpanKind.CLIENT) as span:
+            span.set_attribute("db.system", "valkey")
+            span.set_attribute("net.peer.name", cache_host)
+            span.set_attribute("net.peer.port", int(cache_port))
+            try:
+                conn = ValkeyCluster(
+                    startup_nodes=startup_nodes,
+                    decode_responses=True,
+                    socket_timeout=int(query_timeout),
+                    ssl=ssl,
+                    max_connections=pool_size,
+                    cluster_error_retry_attempts=retry_attempts,
+                    retry=ValkeyRetry(EqualJitterBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
+                    connection_pool_kwargs={
+                        'socket_keepalive': True,
+                        'socket_keepalive_options': {},
+                    },
+                    **extra_kwargs,
+                )
+                logger.info("Valkey connection established successfully")
+            except (ValkeyClusterDownError, ValkeyTimeoutError, ValkeyConnectionError, Exception) as e:
+                span.record_exception(e)
+                span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                logger.error(f"Valkey cluster connection error: {e}")
+                conn = None
         return conn
 
     def valkey_standalone_connect(self):
@@ -218,28 +212,28 @@ class CacheConnect:
             return None
 
         extra_kwargs = CacheConnect._build_auth_ssl_kwargs()
-        try:
-            conn = Valkey(
-                host=cache_host,
-                port=int(cache_port),
-                decode_responses=True,
-                socket_timeout=int(query_timeout),
-                ssl=ssl,
-                max_connections=pool_size,
-                socket_keepalive=True,
-                retry=ValkeyRetry(EqualJitterBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
-                retry_on_error=[ValkeyConnectionError, ValkeyTimeoutError],
-                **extra_kwargs,
-            )
-            conn.ping()
-            logger.info("Valkey standalone connection established successfully")
-        except ValkeyTimeoutError as e:
-            logger.error(f"Timeout error during Valkey standalone initialization: {e}")
-            conn = None
-        except ValkeyConnectionError as e:
-            logger.error(f"Connection error: {e}")
-            conn = None
-        except Exception as e:
-            logger.error(f"Unexpected error during Valkey standalone initialization: {e}")
-            conn = None
+        with _tracer.start_as_current_span("valkey_standalone_connect", kind=trace.SpanKind.CLIENT) as span:
+            span.set_attribute("db.system", "valkey")
+            span.set_attribute("net.peer.name", cache_host)
+            span.set_attribute("net.peer.port", int(cache_port))
+            try:
+                conn = Valkey(
+                    host=cache_host,
+                    port=int(cache_port),
+                    decode_responses=True,
+                    socket_timeout=int(query_timeout),
+                    ssl=ssl,
+                    max_connections=pool_size,
+                    socket_keepalive=True,
+                    retry=ValkeyRetry(EqualJitterBackoff(cap=retry_wait, base=0.5), retries=retry_attempts),
+                    retry_on_error=[ValkeyConnectionError, ValkeyTimeoutError],
+                    **extra_kwargs,
+                )
+                conn.ping()
+                logger.info("Valkey standalone connection established successfully")
+            except (ValkeyTimeoutError, ValkeyConnectionError, Exception) as e:
+                span.record_exception(e)
+                span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                logger.error(f"Valkey standalone connection error: {e}")
+                conn = None
         return conn
