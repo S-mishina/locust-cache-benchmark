@@ -209,7 +209,7 @@ jobs:
       - name: Smoke test - help
         run: |
           docker run --rm ghcr.io/s-mishina/locust-redis-benchmark:${{ github.sha }} \
-            locust_cache_benchmark --help
+            /usr/local/bin/locust_cache_benchmark --help
 
       - name: Smoke test - import native modules
         run: |
