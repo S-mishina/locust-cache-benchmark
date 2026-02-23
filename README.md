@@ -17,11 +17,10 @@ realistic workloads with adjustable parameters such as
 cache hit rates, request rates (get/set req/sec), TTL,
 and cache sizes. It replicates both cache hit and miss
 scenarios using random keys, offering a more dynamic
-testing environment. Additionally, retry logic ensures
-robustness against temporary errors in the
-[Redis](https://redis.io/) & [Valkey](https://valkey.io/)
-cluster, making it suitable for testing under varying
-conditions.
+testing environment. Cluster topology failover
+(MOVED/ASK/ClusterDown) is handled by the cache client
+library, while command-level retries are intentionally
+disabled to provide accurate error rate measurements.
 
 This approach complements [redis-benchmark][redis-bench]
 by focusing on scenarios that mimic real-world application
@@ -330,8 +329,7 @@ A sample Kubernetes Job manifest is available at
 | `--ttl`              | `-t`  | int   | `60`        | Time-to-live for keys in seconds                            |
 | `--connections-pool` | `-l`  | int   | `10`        | Connection pool size per cluster node                       |
 | `--request-rate`     | `-rr` | float | `1.0`       | Request rate per user per second (uses constant_throughput) |
-| `--retry-count`      | `-rc` | int   | `3`         | Number of retries on failure                                |
-| `--retry-wait`       | `-rw` | int   | `2`         | Maximum wait time (cap) for exponential backoff in seconds  |
+| `--retry-count`      | `-rc` | int   | `3`         | Cluster topology retry attempts (MOVED/ASK/ClusterDown)     |
 | `--set-keys`         | `-s`  | int   | `1000`      | Number of keys to set (init only)                           |
 
 ### OpenTelemetry Parameters
@@ -399,7 +397,6 @@ loadtest:
 
 retry:
   attempts: 5
-  wait: 3
 
 opentelemetry:
   tracing_enabled: true
@@ -459,11 +456,11 @@ which can then forward them to backends such as
 Jaeger, Tempo, or convert them to metrics via
 the `spanmetrics` connector for Prometheus.
 
-> **Note:** For Redis, both auto-instrumentation
-> (`RedisInstrumentor`) and manual spans are active.
-> For Valkey, manual spans are used since
-> `RedisInstrumentor` does not instrument the
-> valkey-py client.
+> **Note:** For Redis, `RedisInstrumentor`
+> auto-instrumentation is used.
+> For Valkey, a custom `execute_command` wrapper
+> is used since `RedisInstrumentor` does not
+> instrument the valkey-py client.
 
 ### OpenTelemetry native metrics (Redis only)
 

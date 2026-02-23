@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from cache_benchmark.locust_cache import LocustCache, _get_request_type, _get_db_system
+from cache_benchmark.locust_cache import LocustCache, _get_request_type
 from cache_benchmark.config import AppConfig, set_config, reset_config
 
 
@@ -27,23 +27,6 @@ class TestGetRequestType(unittest.TestCase):
     def test_valkey_standalone(self):
         set_config(AppConfig(cache_type="valkey"))
         self.assertEqual(_get_request_type(), "Valkey")
-
-
-class TestGetDbSystem(unittest.TestCase):
-    def tearDown(self):
-        reset_config()
-
-    def test_default_returns_redis(self):
-        set_config(AppConfig())
-        self.assertEqual(_get_db_system(), "redis")
-
-    def test_valkey_cluster(self):
-        set_config(AppConfig(cache_type="valkey_cluster"))
-        self.assertEqual(_get_db_system(), "valkey")
-
-    def test_valkey_standalone(self):
-        set_config(AppConfig(cache_type="valkey"))
-        self.assertEqual(_get_db_system(), "valkey")
 
 
 class TestLocustCacheGet(unittest.TestCase):
