@@ -7,7 +7,6 @@ COPY dist/locust_cache_benchmark-*.whl /tmp/
 RUN apt-get update \
     && apt-get install --no-install-recommends -y gcc build-essential \
     && pip install --no-cache-dir /tmp/locust_cache_benchmark-*.whl \
-    && pip install --no-cache-dir async-timeout==5.0.1 \
     && rm /tmp/locust_cache_benchmark-*.whl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
