@@ -1,16 +1,11 @@
-import os
 import unittest
 from unittest.mock import patch, Mock
 from cache_benchmark.cash_connect import CacheConnect
 from cache_benchmark.config import AppConfig, set_config, reset_config
 from redis.exceptions import TimeoutError, ConnectionError
 from redis.cluster import ClusterDownError
-from redis.retry import Retry
-from redis.backoff import ExponentialBackoff
 from valkey.cluster import ClusterDownError as ValkeyClusterDownError
 from valkey.exceptions import ConnectionError as ValkeyConnectionError, TimeoutError as ValkeyTimeoutError
-from valkey.retry import Retry as ValkeyRetry
-from valkey.backoff import EqualJitterBackoff
 
 class TestCashConnect(unittest.TestCase):
     def setUp(self):
@@ -31,24 +26,15 @@ class TestCashConnect(unittest.TestCase):
             conn = CacheConnect.redis_connect(self)
             self.assertIsNotNone(conn)
             _, kwargs = mock_cls.call_args
-            self.assertIn("retry", kwargs)
-            self.assertIsInstance(kwargs["retry"], Retry)
+            self.assertNotIn("retry", kwargs)
 
-    def test_redis_connect_retry_uses_config(self):
-        reset_config()
-        set_config(AppConfig(
-            cache_host="localhost",
-            cache_port=6379,
-            connections_pool=10,
-            ssl=False,
-            retry_attempts=5,
-            retry_wait=10,
-        ))
+    def test_redis_connect_no_command_retry(self):
         with patch("cache_benchmark.cash_connect.RedisCluster") as mock_cls:
             mock_cls.return_value = Mock()
             CacheConnect.redis_connect(self)
             _, kwargs = mock_cls.call_args
-            self.assertEqual(kwargs["retry"]._retries, 5)
+            self.assertNotIn("retry", kwargs)
+            self.assertNotIn("retry_on_error", kwargs)
 
     def test_redis_connect_missing_env_vars(self):
         reset_config()
@@ -83,8 +69,7 @@ class TestCashConnect(unittest.TestCase):
             conn = CacheConnect.valkey_connect(self)
             self.assertIsNotNone(conn)
             _, kwargs = mock_cls.call_args
-            self.assertIn("retry", kwargs)
-            self.assertIsInstance(kwargs["retry"], ValkeyRetry)
+            self.assertNotIn("retry", kwargs)
             self.assertIn("cluster_error_retry_attempts", kwargs)
 
     def test_valkey_connect_retry_uses_config(self):
@@ -101,7 +86,7 @@ class TestCashConnect(unittest.TestCase):
             mock_cls.return_value = Mock()
             CacheConnect.valkey_connect(self)
             _, kwargs = mock_cls.call_args
-            self.assertEqual(kwargs["retry"]._retries, 7)
+            self.assertNotIn("retry", kwargs)
             self.assertEqual(kwargs["cluster_error_retry_attempts"], 7)
 
     def test_valkey_connect_missing_env_vars(self):
@@ -138,16 +123,13 @@ class TestCashConnect(unittest.TestCase):
             self.assertIsNotNone(conn)
             mock_conn.ping.assert_called_once()
 
-    def test_redis_standalone_connect_passes_retry(self):
+    def test_redis_standalone_connect_no_command_retry(self):
         with patch("cache_benchmark.cash_connect.Redis") as mock_redis:
             mock_redis.return_value = Mock()
             CacheConnect.redis_standalone_connect(self)
             _, kwargs = mock_redis.call_args
-            self.assertIn("retry", kwargs)
-            self.assertIsInstance(kwargs["retry"], Retry)
-            self.assertIn("retry_on_error", kwargs)
-            self.assertIn(ConnectionError, kwargs["retry_on_error"])
-            self.assertIn(TimeoutError, kwargs["retry_on_error"])
+            self.assertNotIn("retry", kwargs)
+            self.assertNotIn("retry_on_error", kwargs)
 
     def test_redis_standalone_connect_missing_env_vars(self):
         reset_config()
@@ -179,16 +161,13 @@ class TestCashConnect(unittest.TestCase):
             self.assertIsNotNone(conn)
             mock_conn.ping.assert_called_once()
 
-    def test_valkey_standalone_connect_passes_retry(self):
+    def test_valkey_standalone_connect_no_command_retry(self):
         with patch("cache_benchmark.cash_connect.Valkey") as mock_valkey:
             mock_valkey.return_value = Mock()
             CacheConnect.valkey_standalone_connect(self)
             _, kwargs = mock_valkey.call_args
-            self.assertIn("retry", kwargs)
-            self.assertIsInstance(kwargs["retry"], ValkeyRetry)
-            self.assertIn("retry_on_error", kwargs)
-            self.assertIn(ValkeyConnectionError, kwargs["retry_on_error"])
-            self.assertIn(ValkeyTimeoutError, kwargs["retry_on_error"])
+            self.assertNotIn("retry", kwargs)
+            self.assertNotIn("retry_on_error", kwargs)
 
     def test_valkey_standalone_connect_missing_env_vars(self):
         reset_config()
