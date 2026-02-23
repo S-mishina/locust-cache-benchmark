@@ -6,12 +6,12 @@ spec:
   template:
     spec:
       initContainers:
-      - name: locust-redis-benchmark-redis-init
-        image: ghcr.io/s-mishina/locust-redis-benchmark:test-ver1
-        command: ["python", "main.py","init","redis","-f","localhost","-p","6379"]
+        - name: locust-redis-benchmark-redis-init
+          image: ghcr.io/s-mishina/locust-redis-benchmark:test-ver1
+          command: ["locust_cache_benchmark", "init", "redis", "-f", "localhost", "-p", "6379"]
       containers:
-      - name: locust-redis-benchmark-redis-init
-        image: ghcr.io/s-mishina/locust-redis-benchmark:test-ver1
-        command: ["python", "main.py","init","redis","-f","localhost","-p","6379"]
+        - name: locust-redis-benchmark-redis-init
+          image: ghcr.io/s-mishina/locust-redis-benchmark:test-ver1
+          command: ["locust_cache_benchmark", "init", "redis", "-f", "localhost", "-p", "6379"]
       restartPolicy: Never
   backoffLimit: 0

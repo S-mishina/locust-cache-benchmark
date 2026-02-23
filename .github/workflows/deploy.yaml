@@ -89,7 +89,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6.2.0
         with:
-          python-version: '3.14'
+          python-version: '3.11'
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -128,7 +128,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6.2.0
         with:
-          python-version: '3.14'
+          python-version: '3.11'
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
@@ -203,3 +203,16 @@ jobs:
           tags: |
             ghcr.io/s-mishina/locust-redis-benchmark:${{ github.sha }}
             ghcr.io/s-mishina/locust-redis-benchmark:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test - help
+        run: |
+          docker run --rm ghcr.io/s-mishina/locust-redis-benchmark:${{ github.sha }} \
+            locust_cache_benchmark --help
+
+      - name: Smoke test - import native modules
+        run: |
+          docker run --rm --entrypoint python3 \
+            ghcr.io/s-mishina/locust-redis-benchmark:${{ github.sha }} \
+            -c "import gevent; import yaml; import zmq; print('OK')"
