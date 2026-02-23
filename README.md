@@ -268,7 +268,7 @@ To initialize a Redis cluster:
 ```sh
 docker run --rm -it \
   ghcr.io/s-mishina/locust-redis-benchmark:latest \
-  locust_cache_benchmark init redis \
+  /usr/local/bin/locust_cache_benchmark init redis \
   -f <hostname> -p <port>
 ```
 
@@ -277,7 +277,7 @@ To execute a load test on a Redis cluster:
 ```sh
 docker run --rm -it \
   ghcr.io/s-mishina/locust-redis-benchmark:latest \
-  locust_cache_benchmark loadtest local redis \
+  /usr/local/bin/locust_cache_benchmark loadtest local redis \
   -f <hostname> -p <port> \
   -r <hit_rate> -d <duration> \
   -c <connections> -n <spawn_rate> \
@@ -290,7 +290,7 @@ To initialize a standalone Redis via container:
 ```sh
 docker run --rm -it \
   ghcr.io/s-mishina/locust-redis-benchmark:latest \
-  locust_cache_benchmark init redis-standalone \
+  /usr/local/bin/locust_cache_benchmark init redis-standalone \
   -f <hostname> -p <port>
 ```
 
@@ -299,7 +299,7 @@ To execute a load test on a standalone Redis via container:
 ```sh
 docker run --rm -it \
   ghcr.io/s-mishina/locust-redis-benchmark:latest \
-  locust_cache_benchmark loadtest local redis-standalone \
+  /usr/local/bin/locust_cache_benchmark loadtest local redis-standalone \
   -f <hostname> -p <port> \
   -r <hit_rate> -d <duration> \
   -c <connections> -n <spawn_rate> \
