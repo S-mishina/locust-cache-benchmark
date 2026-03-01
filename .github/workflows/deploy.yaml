@@ -155,7 +155,7 @@ jobs:
         run: poetry build
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: wheel
           path: dist/locust_cache_benchmark-*.whl
@@ -176,7 +176,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: wheel
           path: ./dist/
