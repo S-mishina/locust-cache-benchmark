@@ -1084,14 +1084,14 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "locust"
-version = "2.43.4"
+version = "2.44.0"
 description = "Developer-friendly load testing framework"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "locust-2.43.4-py3-none-any.whl", hash = "sha256:a4f40403e9f665e0dcb94991d9a8f19317d0d36afe88400833c5fab99ba942ed"},
-    {file = "locust-2.43.4.tar.gz", hash = "sha256:4ace60f07f5fa9bf08d1b64da25915707befca19a790897eed6372656824deee"},
+    {file = "locust-2.44.0-py3-none-any.whl", hash = "sha256:5dd69aae3dfca8e25c2565e5c4491b21984b41877406b8172ea96cfa9d76c0e5"},
+    {file = "locust-2.44.0.tar.gz", hash = "sha256:338a9fd5389b30df96439baba8299193b5efc1f129763cd9bc6108354fb52547"},
 ]
 
 [package.dependencies]
