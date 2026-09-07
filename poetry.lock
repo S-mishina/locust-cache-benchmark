@@ -1104,14 +1104,15 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "locust"
-version = "2.44.0"
+version = "2.46.0"
 description = "Developer-friendly load testing framework"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
+markers = "python_version < \"3.13\""
 files = [
-    {file = "locust-2.44.0-py3-none-any.whl", hash = "sha256:5dd69aae3dfca8e25c2565e5c4491b21984b41877406b8172ea96cfa9d76c0e5"},
-    {file = "locust-2.44.0.tar.gz", hash = "sha256:338a9fd5389b30df96439baba8299193b5efc1f129763cd9bc6108354fb52547"},
+    {file = "locust-2.46.0-py3-none-any.whl", hash = "sha256:f5a90bb191d28f7e524bb52ddc702d84b2408a2c72e62dab6a9580f5bf5b0b3c"},
+    {file = "locust-2.46.0.tar.gz", hash = "sha256:59629035d26cc70a1d8a94085cf71f115bb80785a1577931b44ed9999305713f"},
 ]
 
 [package.dependencies]
@@ -1131,6 +1132,43 @@ pyzmq = ">=25.0.0"
 requests = ">=2.32.2"
 tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
 typing-extensions = {version = ">=4.6.0", markers = "python_version < \"3.12\""}
+werkzeug = ">=2.0.0"
+
+[package.extras]
+dns = ["dnspython (>=2.8.0)"]
+milvus = ["pymilvus (>=2.5.0)"]
+mqtt = ["paho-mqtt (>=2.1.0)"]
+otel = ["opentelemetry-exporter-otlp-proto-grpc (>=1.38.0)", "opentelemetry-exporter-otlp-proto-http (>=1.38.0)", "opentelemetry-instrumentation-requests (>=0.59b0)", "opentelemetry-instrumentation-urllib3 (>=0.59b0)", "opentelemetry-sdk (>=1.38.0)"]
+qdrant = ["qdrant-client (>=1.16.2)"]
+
+[[package]]
+name = "locust"
+version = "2.46.5"
+description = "Developer-friendly load testing framework"
+optional = false
+python-versions = ">=3.11"
+groups = ["main"]
+markers = "python_version >= \"3.13\""
+files = [
+    {file = "locust-2.46.5-py3-none-any.whl", hash = "sha256:5abc3c6a0bb4164bc161937a3badf5cddf24483a1bc57f609293023ec2310d04"},
+    {file = "locust-2.46.5.tar.gz", hash = "sha256:f47cbde638f4a1d8c2d2693867fbc1bd8331dfebfca8c31e042e61199ab59ffa"},
+]
+
+[package.dependencies]
+configargparse = ">=1.7.1"
+flask = ">=2.0.0"
+flask-cors = ">=3.0.10"
+flask-login = ">=0.6.3"
+gevent = ">=24.10.1"
+geventhttpclient = ">=2.3.1"
+msgpack = ">=1.0.0"
+psutil = ">=5.9.1"
+pytest = ">=8.3.3,<10"
+python-engineio = ">=4.12.2"
+python-socketio = {version = ">=5.13.0", extras = ["client"]}
+pywin32 = {version = "*", markers = "sys_platform == \"win32\""}
+pyzmq = ">=25.0.0"
+requests = ">=2.32.2"
 werkzeug = ">=2.0.0"
 
 [package.extras]
