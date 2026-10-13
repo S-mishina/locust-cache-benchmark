@@ -1,5 +1,5 @@
 # ---------- Stage 1: builder ----------
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.15-slim-bookworm AS builder
 
 COPY dist/locust_cache_benchmark-*.whl /tmp/
 
